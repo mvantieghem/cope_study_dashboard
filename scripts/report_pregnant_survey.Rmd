@@ -120,9 +120,9 @@ prenatal_plot <- prenatal_changes_table_long %>%
       ggplot( aes(x = prenatal_changes, y = Percent)) + 
       geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
       coord_flip()  + theme_bw() + xlab("") + ylim(0, 100)  +
+      ylab("Percent of women who reported changes") + 
       labs( title = "Prenatal care during the COVID-19 outbreak", 
-            subtitle = "Percent of women reporting reporting changes to prenatal care", 
             caption = "Data aggregated from 417 pregnant women")  +
-      ylab ("") 
+      xlab ("") 
 
 ```

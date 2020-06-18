@@ -8,7 +8,7 @@ library(tidyverse)
 library(ggplot2)
 library(shinythemes)
 
-# process data and generate tables we use to plot.
+# process data and generate tables and plots 
 source("scripts/custom_functions.R")
 source_rmd("scripts/1a_data_cleaning_baselineQ.Rmd")
 source_rmd("scripts/1b_data_cleaning_new_momQ.Rmd")
@@ -51,7 +51,7 @@ ui <-  fluidPage( titlePanel("COPE: Coronovirus-19 and Perinatal Experiences Stu
                              p("We asked new and expectant moms to share their experiences about how their health care changed due to the pandemic."),
                              p(""), # blank line, more space before tabs
                              #   allow the main panel to have tabs
-                              tabsetPanel(type = 'tabs',
+                             tabsetPanel(type = 'tabs',
                                          # make a plot using the output from the server
                                          # identify it using output id 
                                          tabPanel('Prenatal Care', 
@@ -70,29 +70,51 @@ ui <-  fluidPage( titlePanel("COPE: Coronovirus-19 and Perinatal Experiences Stu
                              p(" - 80% of new mothers reported changes to their postnatal care,
                                    with 70% reporting that family and friends were unable to visit.")
                             )
-                          ),
-                  tabPanel('Impact & Stressors',
-                           h3("What are the biggest stressors associated with the Covid-19 pandemic?"), 
-                           p("New and expectant mothers shared how Covid-19 has impacted their daily lives, 
+                 ),
+                tabPanel('Covid-19 Exposures',
+                         h3("Rates of Covid-19 symptoms, testing, and exposures"), 
+                         p("New and expectant mothers ...."),
+                         p(""), # blank line, more space before tabs
+                         #   allow the main panel to have tabs
+                         tabsetPanel(type = 'tabs',
+                                     tabPanel('Covid-19 Symptoms'), 
+                                     tabPanel("Covid-19 Testing"), 
+                                     tabPanel("Covid-19 Exposures")
+                                     # social distruptions
+                         ),
+                         h4("Key findings:")
+                ), 
+                tabPanel('Impact',
+                        mainPanel(
+                           h3("How has the Covid-19 pandemic impacted pregnant and expectant moms?"), 
+                           p("Women shared how Covid-19 has impacted their daily lives, 
                              and what aspects of those impacts are most concerning to them."),
                            p(""), # blank line, more space before tabs
                            #   allow the main panel to have tabs
                            tabsetPanel(type = 'tabs',
                                        # make a plot using the output from the server
                                        # identify it using output id 
-                                       tabPanel('Financial Impacts'), 
-                                               # endorsed changes to jobs and childcare 
+                                       tabPanel('Financial',
+                                               plotOutput (outputId = "financial_impact_plot"),
+                                               h4("Key findings:"),
+                                               p(" - More than 50% of women changed to remote work"), 
+                                               p(" - X% of women reported job loss, and X% reported reduced pay."),
+                                               p(" - 25% of women reported disruptions to jobs due to child care challenges.")),
                                        # associated concern levels - current and future 
-                                       tabPanel("Health Impacts"), 
+                                       tabPanel("Health"),
+                                       tabPanel("Restrictions"),
+                                       tabPanel("Concerns"),
+                                       tabPanel("Stressors")
+                                       # make a summary plot that compares scores across all of the concern / distress categories 
                                                # how concerned they are about child's health
                                        # how concerned they are about prenatal care changes 
                                        # how concerned they are about postnatal care changes
                                        # how concerned they are about covid-19 exposures 
-                                       tabPanel("Social Impacts")
-                                                # social distruptions
-                           ),
-                           h4("Key findings:")
-                           ),
+                                      # p("we asked women what the greatest source of stress is due to Covid-19"),
+                                      # p("source_stress_covid, source_stress_covid2")
+                           )
+                        )
+                ),
                 tabPanel('Social Support',
                          h3("How are women receiving social support during the COVID-19 pandemic?"), 
                          p("We asked women about how they have adapted to covid-19 to meet their social support needs."),
@@ -136,59 +158,27 @@ ui <-  fluidPage( titlePanel("COPE: Coronovirus-19 and Perinatal Experiences Stu
 # SERVER FUNCTION ---------------------------------------------------------
 
 server_function <- function(input, output) {
-
+  #load static plot created in report_new_mom.Rmd
   output$birth_plot <- renderPlot({
-    
-    # create the plot using data table already created
-    birth_plot <- birth_changes_table_long %>%
-      filter(Delivery_date == "After March 15, 2020" & 
-               Birth_Changes != "No changes") %>%
-      mutate(Birth_Changes = reorder(Birth_Changes, Percent)) %>%
-      ggplot(aes(x = Birth_Changes, y = Percent)) +
-      geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
-      coord_flip()  + theme_bw() + xlab("") + ylim(0, 100)+
-      labs( title = "Birth & Delivery during the COVID-19 outbreak", 
-            subtitle = "Percent of women who reported changes to their birth plans due to covid-19", 
-            caption = "Data aggregated from 147 women who delivered after March 15th, 2020")  + 
-      ylab ("") +  theme(axis.text = element_text(size = 12))
-    
-    # Display the plot (whether it has facets or not)
-    birth_plot
-    
+   birth_plot + theme(axis.text = element_text(size = 12))
   })
   
+  #load static plot created in report_new_mom.Rmd
   output$postnatal_plot <- renderPlot({
-    
-    # create the plot using data table already created
-    postnatal_plot <- postnatal_changes_table_long %>%
-      filter(Postnatal_Changes != "No change") %>%
-      mutate(Postnatal_Changes = reorder(Postnatal_Changes, Percent)) %>%
-      ggplot(aes(x = Postnatal_Changes, y = Percent)) +
-      geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
-      coord_flip()  + theme_bw() + xlab("") + ylim(0, 100)+ 
-      labs( title = "Postnatal care during the COVID-19 outbreak", 
-            subtitle = "Percent of women who reported changes to postnatal care due to covid-19", 
-            caption = "Data aggregated from 406 women with infants under 6 months of age") +
-      ylab ("") +  theme(axis.text = element_text(size = 12))
-    postnatal_plot
-    
-  })
+     postnatal_plot + theme(axis.text = element_text(size = 12))
+    })
   
+  # load static plot that was created in report_pregnant_survey.Rmd
   output$prenatal_plot <- renderPlot({
-    # create the plot using data table already created
-    prenatal_plot <- prenatal_changes_table_long %>%
-      filter(prenatal_changes != "No changes") %>%
-      mutate(prenatal_changes = reorder(prenatal_changes, Percent)) %>%
-      ggplot( aes(x = prenatal_changes, y = Percent)) + 
-      geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
-      coord_flip()  + theme_bw() + xlab("") + ylim(0, 100)  +
-      labs( title = "Prenatal care during the COVID-19 outbreak", 
-            subtitle = "Percent of women reporting reporting changes to prenatal care", 
-            caption = "Data aggregated from 417 pregnant women")  +
-      ylab ("") +  theme(axis.text = element_text(size = 12))
+   prenatal_plot +  theme(axis.text = element_text(size = 12))
+    })
+  
+  #load static plot that was created in report_financial_changes.Rmd
+  output$financial_impact_plot  <- renderPlot({
+     financial_impact_plot + theme(axis.text = element_text(size = 12))
     
-    prenatal_plot
-  })
+    })
+  
 }
 
 

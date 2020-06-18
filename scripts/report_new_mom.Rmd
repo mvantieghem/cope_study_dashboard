@@ -166,10 +166,11 @@ birth_plot <- birth_changes_table_long %>%
       mutate(Birth_Changes = reorder(Birth_Changes, Percent)) %>%
       ggplot(aes(x = Birth_Changes, y = Percent)) +
       geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
-      coord_flip()  + theme_bw() + xlab("") + ylim(0, 100)+
+      coord_flip()  + theme_bw()  + ylim(0, 100)+
+           ylab("Percent of women who reported changes") +
       labs( title = "Birth & Delivery during the COVID-19 outbreak", 
-            subtitle = "Percent of women who reported changes to their birth plans due to covid-19", 
-            caption = "Data aggregated from 147 women who delivered after March 15th, 2020")  + ylab ("") 
+            caption = "Data aggregated from 147 women who delivered after March 15th, 2020")  + 
+        xlab ("") 
     
     # Display the plot (whether it has facets or not)
     birth_plot
@@ -233,9 +234,9 @@ save(postnatal_changes_table_long, file = "tables/postnatal_changes_table_long.R
       mutate(Postnatal_Changes = reorder(Postnatal_Changes, Percent)) %>%
       ggplot(aes(x = Postnatal_Changes, y = Percent)) +
       geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
-      coord_flip()  + theme_bw() + xlab("") + ylim(0, 100)+ ylab("")+
+      coord_flip()  + theme_bw() + ylab("Percent of women who reported changes") + 
+       ylim(0, 100) + xlab("") +
       labs( title = "Postnatal care during the COVID-19 outbreak", 
-            subtitle = "Percent of women who reported changes to postnatla care due to covid-19", 
             caption = "Data aggregated from 406 women with infants under 6 months of age")
 postnatal_plot
 ```
