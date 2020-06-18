@@ -1,0 +1,128 @@
+---
+title: "COPE data for NYU Langone cohort: Pregnant questionnaire"
+author: "Michelle.VanTieghem"
+date: "June 1, 2020"
+output:
+  html_document:
+    number_sections: no
+    df_print: paged
+    code_folding: show
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+      
+---
+
+## README 
+Note: only including pregnant women! \
+prenatal change groups (1 = yes, 0 = no) reflected all changes except for cancellation of hospital tours; which happened to nearly everyone.
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set(echo = F, message = F, warning = F, include= F)
+
+
+# load packages
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+
+# load custom packages
+source("scripts/custom_functions.R")
+
+# load cleaned data
+load("clean_data/baseline_clean_df.Rdata")
+```
+
+
+## add prenatal vars
+```{r}
+baseline_clean2 <- baseline_clean2 %>%
+   # track prenatal care change
+    mutate(no_resp_prenatal_change = ifelse(currently_pregnant == 0, NA,
+                                ifelse(prenatal_care_changes___1 == 0 &
+                               (prenatal_care_changes___2 == 0) &
+                                 (prenatal_care_changes___3 == 0) &
+                                 (prenatal_care_changes___4 == 0) &
+                                 (prenatal_care_changes___5== 0) &
+                                 (prenatal_care_changes___6== 0) &
+                                 (prenatal_care_changes___7== 0) &
+                                 (prenatal_care_changes___8== 0) &
+                                 (prenatal_care_changes___9 == 0) &
+                                 (prenatal_care_changes___10 == 0) & 
+                                 (prenatal_care_changes___11 == 0), 1, 0)),
+     any_prenatal_change = ifelse(prenatal_care_changes___1 == 1 |
+                               prenatal_care_changes___2 == 1 |
+                               prenatal_care_changes___3 == 1 |
+                               prenatal_care_changes___4 == 1 |
+                               prenatal_care_changes___5 == 1 |
+                               prenatal_care_changes___6 == 1 |
+                               prenatal_care_changes___7 == 1 |
+                               prenatal_care_changes___8 == 1 |
+                                 prenatal_care_changes___9 == 1 |
+                               prenatal_care_changes___10 == 1, 1, 
+                               # option 11 = no change, will get marked 0 
+                                      # mark people who answered none of these options as NA.
+                               ifelse(no_resp_prenatal_change == 1, NA, 0)),
+     # make prettier version for plotting  
+     Prenatal_change_factor = as.factor(ifelse(any_prenatal_change == 0, "No changes", "Changes to Prenatal Care")))
+
+summary(baseline_clean2$Prenatal_change_factor)
+summary(as.factor(baseline_clean2$any_prenatal_change))
+summary(as.factor(baseline_clean2$no_resp_prenatal_change))
+```
+
+### prenatal care changes
+
+```{r}
+prenatal_changes_table <- baseline_clean2 %>%
+  # only include people who answered this Q
+  filter(!is.na(any_prenatal_change)) %>%
+  # group by birth before or after March 15, 2020
+  summarize(N_total = n(), 
+            'Any change to prenatal care' = sum(any_prenatal_change, na.rm = T),
+            'Changes to birth schedule (C-section/Induction)' = sum(prenatal_care_changes___1 == 1 | prenatal_care_changes___2 == 1, na.rm = T), 
+            'Changed to home birth' = sum(prenatal_care_changes___3 == 1, na.rm = T), 
+            'Changed hospital or birthing center'= sum(prenatal_care_changes___5 == 1, na.rm = T),
+            'Changed prenatal health care provider' = sum(prenatal_care_changes___6 == 1, na.rm = T),
+           'Reduced prenatal health visits' = sum(prenatal_care_changes___7 == 1,na.rm = T),
+           'Changed format of prenatal care' = sum(prenatal_care_changes___8 == 1, na.rm = T),
+           'Cancellation of hospital tours' = sum(prenatal_care_changes___9 == 1, na.rm = T),
+           'Change to virtual prenatal care visits' = sum(prenatal_care_changes___10 == 1, na.rm = T),
+           'No changes' = sum(prenatal_care_changes___11 == 1, na.rm = T))
+           
+
+
+prenatal_changes_table_long <- prenatal_changes_table %>%
+  gather(key = "prenatal_changes", value = "N_endorsed", -N_total) %>%
+  select(prenatal_changes, N_endorsed, N_total) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
+  select(prenatal_changes,  N_endorsed, Percent)
+
+save(prenatal_changes_table_long, file = "tables/prenatal_changes_table_long.Rdata")
+```
+
+
+
+## Change vs. no change to prenatal care
+```{r, echo = F}
+(prenatal_changes_table_long %>%
+   filter(prenatal_changes == "Any change to prenatal care" |
+            prenatal_changes == "No changes"))
+```
+
+##  Types of chahnges
+
+```{r,  echo = F}
+prenatal_changes_table_long %>%
+     filter(prenatal_changes != "No changes") %>%
+  mutate(prenatal_changes = reorder(prenatal_changes, Percent)) %>%
+ggplot( aes(x = prenatal_changes, y = Percent)) + 
+  geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
+   coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
+   theme(legend.position = c(0.7, 0.2)) + ylab ("") +
+  labs( title = "Changes to prenatal care relating to the COVID-19 outbreak", 
+                          subtitle = "Percent of women reporting reporting changes to prenatal care", 
+          caption = "Data aggregated from 417 pregnant women") 
+
+```

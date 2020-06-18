@@ -1,0 +1,340 @@
+---
+title: 'COPE data for NYU Langone cohort: New mom questionnaire'
+author: "Michelle.VanTieghem"
+date: "June 2, 2020"
+output:
+  html_document:
+    code_folding: show
+    df_print: paged
+    number_sections: no
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  word_document:
+    toc: yes
+---
+
+
+# README 
+Includes all participants who completed New Mom questionnaire at either baseline or Week 2 follow-up. \ Questions were optional so not all Qs have same  # of participants. \
+Data collected between 04-04-2020 and 06-02-2020. \
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set(echo = F, message = F, warning = F, include= F)
+
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+library(kableExtra)
+```
+
+# load data
+```{r, echo = F, include = F}
+load("clean_data/new_mom_df_clean.Rdata")
+N_completed_maternal_Q <- nrow(mom_data_all)
+
+```
+
+Total new moms completing questionnaire: `r N_completed_maternal_Q`
+
+# Maternal ratings of general perinatal health care
+## Current support 
+How well have you been supported by your pre- and postnatal care provider(s) ?
+```{r, echo = F, include = F}
+support_table <- mom_data_all %>%
+  filter(!is.na(mom_care_support_change)) %>%
+  summarize(N = n(), 
+           "Very well supported" = sum(mom_care_support == 1, na.rm = T),
+           "Somewhat well supported" = sum(mom_care_support == 2, na.rm = T), 
+           "Not very well supported"= sum(mom_care_support == 3, na.rm = T))
+
+support_table_long <- support_table %>%
+  gather(key = "Support_level", value = "N_endorsed",  -N) %>%
+  mutate(Percent = round((N_endorsed/N) *100, 2)) %>%
+  select(Support_level, N_endorsed, Percent)
+```
+
+```{r, echo = F}
+(support_table_long)
+
+```
+
+
+## Change in perinatal care due to covid-19 outbreak
+Did the support you received from your pre- and postnatal care provider(s) change due to the COVID-19 outbreak?
+```{r, echo = F, include = F}
+
+support_table <- mom_data_all %>%
+  filter(!is.na(mom_care_support_change)) %>%
+  summarize(N = n(), 
+           "Significantly worsened" = sum(mom_care_support_change == 1, na.rm = T),
+           "Somewhat worsened" = sum(mom_care_support_change == 2, na.rm = T), 
+           "No change"= sum(mom_care_support_change == 3, na.rm = T), 
+           "Not relevant" = sum(mom_care_support_change == 4, na.rm = T), 
+           "Somewhat improved" = sum(mom_care_support_change == 5, na.rm = T), 
+           "Significantly improved" = sum(mom_care_support_change == 6, na.rm = T))
+
+
+support_table_long <- support_table %>%
+  gather(key = "change", value = "N_endorsed",  -N) %>%
+  mutate(Percent = round((N_endorsed/N) *100, 2)) %>%
+  select(change, N_endorsed, Percent)
+```
+
+```{r, echo = F}
+(support_table_long)
+
+```
+
+
+```{r, echo = F}
+
+support_table_long %>%
+  mutate(change = reorder(change, Percent)) %>%
+  filter(change != "Not relevant") %>%
+ggplot(aes(x = change, y = Percent)) + 
+  geom_bar(stat =  "identity") + 
+  ylim(0, 100) + coord_flip()  + theme_bw() + xlab("") +
+  scale_fill_manual(values=c("dark red", "dark gray")) +
+   theme(legend.position = c(0.8, 0.2)) + ylab ("Percent") +
+  labs( title = "Change in perinatal care support due to Covid-19", 
+ subtitle = "Percent of women reporting changes in pre or postnatal care", 
+          caption = "Data source: NYU Langone COPE Study") 
+
+```
+
+
+
+# Changes to Birth plan - before and after covid
+ 0 = Delivery date before March 15, 2020 (before covid) \
+ 1 = Delivery date on or after March 15, 2020 (after covid) \
+(question is check all that apply)
+```{r, echo =F, include = F}
+
+# get N for how many people answered this Q, to calculate %
+N_total <- sum(!is.na(mom_data_all$any_birth_change))
+
+# make table of changes
+birth_changes_table <- mom_data_all %>%
+  # only include people who answered this Q
+  filter(!is.na(any_birth_change)) %>%
+  # group by birth before or after March 15, 2020
+  group_by(Delivery_date) %>%
+  summarize(N_total = n(), 
+            'Any change to birth plan' = sum(any_birth_change, na.rm = T),
+            'Reduced access to preferred medications' = sum(birth_plan_changes___1 == 1, na.rm = T),
+            'Changes to birth location' = sum(birth_plan_changes___2 == 1, na.rm = T),
+            'Changes to birth schedule' = sum(birth_plan_changes___3 == 1 | 
+                                                birth_plan_changes___4 == 1, na.rm = T),
+            "Health care provider was not available" = sum(birth_plan_changes___5 == 1, na.rm = T),
+            "Support person not permitted at delivery"= sum(birth_plan_changes___6 == 1, na.rm = T),
+            'Separated from baby after delivery' = sum(birth_plan_changes___7 == 1 |
+                                                         birth_plan_changes___8 == 1, na.rm = T),
+            'Other change to birth plan' = sum(birth_plan_changes___10 == 1, na.rm = T),
+            'No changes' = sum(birth_plan_changes___9 == 1, na.rm = T))
+
+birth_changes_table_long <- birth_changes_table %>%
+  gather(key = "Birth_Changes", value = "N_endorsed", -Delivery_date, -N_total) %>%
+  select(Birth_Changes,  Delivery_date, N_endorsed, N_total) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
+  select(Birth_Changes, Delivery_date, N_endorsed, Percent)
+save(birth_changes_table_long, file = "tables/birth_changes_table_long.Rdata")
+```
+
+
+## Change vs. no change to birth plan, by delivery date
+```{r, echo = F}
+(birth_changes_table_long %>%
+   filter(Birth_Changes == "Any change to birth plan" |
+            Birth_Changes == "No changes"))
+```
+
+## Types of changes to birth plan due to covid-19
+```{r, echo = F}
+(birth_changes_table_long %>%
+   filter(Birth_Changes != "Any change to birth plan" &
+            Birth_Changes != "No changes" & Delivery_date == "After March 15, 2020")) %>%
+  select(Birth_Changes, N_endorsed, Percent)
+```
+
+
+```{r,  echo = F}
+birth_changes_table_long %>%
+     filter(Birth_Changes != "Any change to birth plan") %>%
+  mutate(Birth_Changes = reorder(Birth_Changes, Percent)) %>%
+ggplot( aes(x = Birth_Changes, y = Percent)) + 
+  geom_bar(stat =  "identity", position = position_dodge(), aes(fill = Delivery_date)) + 
+   coord_flip()  + theme_bw() + xlab("") + #facet_grid(~Delivery_date) +
+  scale_fill_manual(values=c("dark red", "dark gray")) +
+   theme(legend.position = c(0.7, 0.2)) + ylab ("") +
+  labs( title = "Changes to birth plans relating to the COVID-19 outbreak", 
+                          subtitle = "Percent of women reporting reporting changes to birth plan", 
+          caption = "Data source: NYU Langone COPE Study") 
+
+```
+
+## Do changes in birth plan influence distress levels?
+
+make a summary table
+```{r, echo = F, include = F}
+distress_table <- mom_data_all %>%
+  filter(!is.na(Birth_change_factor)) %>%
+   group_by(Birth_change_factor) %>%
+   summarize(mean_birth_change_distress = mean(birth_change_distress,na.rm = T), 
+             sd_birth_change_distress = sd(birth_change_distress, na.rm = T), 
+             mean_bsi = mean(bsi_ave, na.rm  = T),
+             sd_bsi  = sd(bsi_ave, na.rm = T), 
+             mean_ptsd = mean(ptsd_ave, na.rm = T), 
+             sd_ptsd = sd(ptsd_ave, na.rm = T)) 
+
+```
+
+### Birth change distress
+1 =no distress, 7 = extremely distressing \
+
+```{r}
+distress_table %>%
+   mutate(upper = mean_birth_change_distress + sd_birth_change_distress,
+         lower = mean_birth_change_distress - sd_birth_change_distress)  %>%
+ggplot( aes(x =  Birth_change_factor, y =mean_birth_change_distress, fill = Birth_change_factor)) +
+  geom_bar(stat =  "identity", position = position_dodge())  + ylim(0, 7) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
+  geom_jitter(data = mom_data_all, aes (x = Birth_change_factor, y = birth_change_distress), 
+             alpha = 0.5, width = 0.1) + xlab("") +
+  ylab("Maternal Distress ") + 
+    scale_fill_manual(values=c("dark red", "dark gray"))  + theme_bw() + 
+      theme(legend.position = "none") +
+  labs( title = "Self-reported distress due to changes to birth plan",  
+        subtitle = "0 = no distress, 7 = extreme distress" ,
+          caption = "Data source: NYU Langone COPE Study") 
+```
+
+### Brief Symptom Inventory - global scale
+
+```{r}
+distress_table %>%
+   mutate(upper = mean_bsi + sd_bsi,
+         lower = mean_bsi - sd_bsi)  %>%
+ggplot( aes(x =  Birth_change_factor, y =mean_bsi, fill = Birth_change_factor)) +
+  geom_bar(stat =  "identity", position = position_dodge())  +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
+  geom_jitter(data = mom_data_all, aes (x = Birth_change_factor, y = bsi_ave), 
+             alpha = 0.5, width = 0.1) + xlab("") + ylim(-0.5, 4) +
+  ylab("Global Severity Index") + 
+    scale_fill_manual(values=c("dark red", "dark gray"))  + theme_bw() + 
+      theme(legend.position = "none") +
+  labs( title = "Symptoms relating to birth plan changes",  
+        subtitle = "Global Severity Index from Brief Symptom Inventory (BSI)" ,
+          caption = "Data source: NYU Langone COPE Study") 
+```
+
+
+## What about specifically, lack of support partner during delivery?
+
+
+make a summary table
+```{r, echo = F, include = F}
+mom_data_all <- mom_data_all %>%
+  mutate(Support_partner = as.factor(ifelse(birth_plan_changes___6 == 1,  "Not Permitted", "Permitted")))
+
+distress_table <- mom_data_all %>%
+  filter(!is.na(Support_partner)) %>%
+   group_by(Support_partner) %>%
+   summarize(mean_birth_change_distress = mean(birth_change_distress,na.rm = T), 
+             sd_birth_change_distress = sd(birth_change_distress, na.rm = T), 
+             mean_bsi = mean(bsi_ave, na.rm  = T),
+             sd_bsi  = sd(bsi_ave, na.rm = T), 
+             mean_ptsd = mean(ptsd_ave, na.rm = T), 
+             sd_ptsd = sd(ptsd_ave, na.rm = T)) 
+
+```
+
+### Birth change distress
+1 =no distress, 7 = extremely distressing \
+
+```{r}
+distress_table %>%
+   mutate(upper = mean_birth_change_distress + sd_birth_change_distress,
+         lower = mean_birth_change_distress - sd_birth_change_distress)  %>%
+ggplot( aes(x =  Support_partner, y =mean_birth_change_distress, fill = Support_partner)) +
+  geom_bar(stat =  "identity", position = position_dodge())  + ylim(0, 7) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
+  geom_jitter(data = mom_data_all, aes (x = Support_partner, y = birth_change_distress), 
+             alpha = 0.5, width = 0.1) + xlab("") +
+  ylab("Maternal Distress ") + 
+    scale_fill_manual(values=c("dark red", "dark gray"))  + theme_bw() + 
+      theme(legend.position = "none") +
+  labs( title = "Self-reported distress due to changes to birth plan",  
+        subtitle = "0 = no distress, 7 = extreme distress" ,
+          caption = "Data source: NYU Langone COPE Study") 
+```
+
+### Brief Symptom Inventory - global scale
+
+```{r}
+distress_table %>%
+   mutate(upper = mean_bsi + sd_bsi,
+         lower = mean_bsi - sd_bsi)  %>%
+ggplot( aes(x =  Support_partner, y =mean_bsi, fill = Support_partner)) +
+  geom_bar(stat =  "identity", position = position_dodge())  +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
+  geom_jitter(data = mom_data_all, aes (x = Support_partner, y = bsi_ave), 
+             alpha = 0.5, width = 0.1) + xlab("") + ylim(-0.5, 4) +
+  ylab("Global Severity Index") + 
+    scale_fill_manual(values=c("dark red", "dark gray"))  + theme_bw() + 
+      theme(legend.position = "none") +
+  labs( title = "Symptoms relating to birth plan changes",  
+        subtitle = "Global Severity Index from Brief Symptom Inventory (BSI)" ,
+          caption = "Data source: NYU Langone COPE Study") 
+```
+  
+# Changes in Postnatal health care due to covid-19 outbreak
+(check all that apply)
+```{r, echo = F, include = F}
+# get N for how many people answered this Q, to calculate %
+N_total <- sum(!is.na(mom_data_all$any_postnatal_change))
+
+# make table of changes
+postnatal_changes_table <- mom_data_all %>%
+  # only include people who answered this Q
+  filter(!is.na(any_postnatal_change)) %>%
+  summarize(N_total = n(), 
+            'Any change to postnatal care plan' = sum(any_postnatal_change, na.rm = T),
+             'Family/friends unable to visit' = sum(postnatal_plan_changes___1 == 1, na.rm = T),
+            'No access to lactation support' = sum(postnatal_plan_changes___2 == 1, na.rm = T),
+            'Cancelled postpartum visit' = sum(postnatal_plan_changes___3 == 1, na.rm = T),
+            'Virtual postpartum visit' = sum(postnatal_plan_changes___4 == 1, na.rm = T),
+            "Unable to access preferred contraception" = sum(postnatal_plan_changes___5 == 1, na.rm = T),
+            "Unable to talk about baby blues"= sum(postnatal_plan_changes___6 == 1, na.rm = T),
+            'Virtual Baby well visits' = sum(postnatal_plan_changes___7 == 1, na.rm = T),
+            'Cancelled Baby well visits' = sum(postnatal_plan_changes___8 == 1, na.rm = T),
+            'Postponed immunizations for baby' = sum(postnatal_plan_changes___9 == 1, na.rm = T), 
+            "Other change" =sum(postnatal_plan_changes___11 == 1, na.rm = T),
+            "No change" = sum(postnatal_plan_changes___10 == 1, na.rm = T))
+
+postnatal_changes_table_long <- postnatal_changes_table %>%
+  gather(key = "Postnatal_Changes", value = "N_endorsed", -N_total) %>%
+  select(Postnatal_Changes,N_endorsed, N_total) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
+  select(Postnatal_Changes,  N_endorsed, Percent)
+```
+
+
+## Change vs. no change to postnatal care plan, by delivery date
+```{r, echo = F}
+
+postnatal_changes_table_long %>%
+   filter(Postnatal_Changes == "Any change to postnatal care plan" |
+            Postnatal_Changes == "No change")
+```
+
+## Types of changes to birth plan due to covid-19
+```{r, echo = F}
+postnatal_changes_table_long %>%
+   filter(Postnatal_Changes != "Any change to postnatal care plan" &
+            Postnatal_Changes != "No change" ) %>%
+  select(Postnatal_Changes, N_endorsed, Percent)
+
+save(postnatal_changes_table_long, file = "tables/postnatal_changes_table_long.Rdata")
+```

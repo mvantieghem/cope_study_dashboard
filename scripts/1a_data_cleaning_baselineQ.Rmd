@@ -1,0 +1,263 @@
+---
+title: "COPE data cleaning"
+author: "Michelle.VanTieghem"
+date: "June 2, 2020"
+output:
+  html_document:
+    number_sections: no
+    df_print: kable
+    code_folding: show
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+      
+---
+
+
+```{r, echo = F, message = F, warning = F, include = F}
+# set global options, so no output when run!
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+```
+
+# README
+cleaning COPE survey data for further analysis \
+output: cleaned baseline data for redcap instrument "cope survey all" \
+removes duplicates, includes all responses, including incompletes. 
+
+# load data from REDCAP
+
+## phase 1 baseline data 
+```{r, echo = F}
+phase1_df <- read.csv("raw_data/COPECOVID19Perinatal_DATA_use.csv") 
+phase1_df2 <- phase1_df %>%
+  filter(consent_agree == "Yes") %>%
+  select(-contains("timestamp")) %>%
+   mutate(child_birth_date = as.character(child_birth_date), 
+         birth_date = as.character(birth_date), 
+         today_date = as.character(today_date),
+         pregnant_due_date = as.character(pregnant_due_date),
+         covid_tested_neg_date = as.character(covid_tested_neg_date),
+         status = ifelse(is.na(currently_mother), "Pregnant", "New Mom")) %>%
+  rename(baseline_date = today_date, 
+         record_id = participant_id) %>%
+  mutate(survey_email = email_self,
+         phase = "phase1")
+```
+
+### check N
+```{r, eval = F}
+print(paste0("Total Records:", nrow(phase1_df)))
+print("Consented:")
+summary(phase1_df$consent_agree)
+
+print ("Completed all surveys:")
+summary(as.factor(phase1_df2$covid_19_survey_all_complete))
+
+```
+
+## spanish baseline data
+```{r, echo = F}
+span_df <- read.csv("raw_data/COPECOVID19YExperien_DATA_span_use.csv") 
+
+span_df2 <- span_df %>%
+  filter(consent_agree == 1) %>%
+  select(-contains("timestamp")) %>%
+   mutate(child_birth_date = as.character(child_birth_date), 
+         birth_date = as.character(birth_date), 
+         today_date = as.character(today_date),
+         pregnant_due_date = as.character(pregnant_due_date),
+         covid_tested_neg_date = as.character(covid_tested_neg_date),
+         status = ifelse(is.na(currently_mother), "Pregnant", "New Mom"),
+         record_id = paste0("Span", participant_id)) %>%
+  rename(baseline_date = today_date, 
+         covid_19_survey_all_complete = covid19_encuesta_completa_complete, 
+         covid19_survey_for_new_mothers_complete = encuesta_de_covid19_para_madres_nuevas_complete,
+           covid19_survey_for_pregnant_women_complete = encuesta_de_covid19_para_mujeres_embarazadas_complete,
+         survey_email = email_self) %>%
+  mutate(phase = "phase1_spanish")
+```
+
+
+### check N
+```{r, eval = F}
+print(paste0("Total Records:", nrow(span_df)))
+print("Consented:")
+summary(as.factor(span_df$consent_agree))
+
+print ("Completed all surveys:")
+summary(as.factor(span_df2$covid_19_survey_all_complete))
+
+```
+
+## expanded baseline-only project: 
+```{r, echo = F, message = F, warning = F}
+new_df <- read.csv("raw_data/COPECOVID19Perinatal_DATA_use.csv") 
+new_df2 <- new_df %>%
+  filter(consent_agree == "Yes") %>%
+  select(-contains("timestamp")) %>%
+   mutate(child_birth_date = as.character(child_birth_date), 
+         birth_date = as.character(birth_date), 
+         today_date = as.character(today_date),
+         pregnant_due_date = as.character(pregnant_due_date),
+         covid_tested_neg_date = as.character(covid_tested_neg_date),
+         status = ifelse(is.na(currently_mother), "Pregnant", "New Mom")) %>%
+  rename(baseline_date = today_date, 
+         record_id = participant_id) %>%
+  mutate(phase = "expanded_baseline")
+nrow(new_df2)
+
+```
+
+
+### check N
+```{r, eval = F}
+print(paste0("Total Records:", nrow(new_df)))
+print("Consented:")
+summary(as.factor(new_df$consent_agree))
+
+print ("Completed all surveys:")
+summary(as.factor(new_df2$covid_19_survey_all_complete))
+
+```
+
+
+## merge data 
+```{r, echo = F, warning =F, message =F }
+# get them all only including the same exacct number of rows 
+overlap <- names(new_df2)[names(new_df2) %in% names(phase1_df2) & 
+                           names(new_df2) %in% names(span_df2)]
+# only keep the overlappgn variables moving forward
+new_df3 <- new_df2 %>% select(all_of(overlap))
+phase1_df3 <- phase1_df2 %>% select(all_of(overlap))
+span_df3 <- span_df2 %>% select(all_of(overlap))
+
+# combine all baseline data
+baseline_df <- rbind(phase1_df3, span_df3, new_df3)
+```
+
+## fix duplicate entries
+```{r}
+# get list of people who re-started baseline that were already enrolled
+
+duplicates <- read.csv("raw_data/started_new_survey_already_enrolled.csv")
+nrow(duplicates)
+
+baseline_df2 <- baseline_df %>%
+  filter(! record_id %in% duplicates$participant_id)
+
+```
+
+## clean baseline data
+Note: filtering out people who did not consent, but including  *PARTIAL RESPONDERS*
+```{r, echo = F}
+baseline_clean <- baseline_df2 %>%
+  # exclude if they don't agree to consent.
+  filter(consent_agree == "Yes") %>%
+  mutate(# fix variables
+    child_birth_date = ifelse(child_birth_date == "", NA,as.character(child_birth_date)),
+    birth_date = ifelse(birth_date == "", NA, as.character(birth_date)),
+  #because 30-40 K was labeled as 16 instead of 4
+  # first, bump up all levels aboove 4 by 1
+    income_brackets = ifelse(income == 1, "< $10K",
+                   ifelse(income == 2, "$10-20K",
+                      ifelse(income == 3, "$20-30K", 
+                      ifelse(income == 16, "$30-40K",
+                       ifelse(income == 4, "$40-50K",
+                      ifelse(income == 5, "50-60K",
+                         ifelse(income == 6, "$60-80K",
+                         ifelse(income == 7, "$80-100K",
+                           ifelse(income == 8, "$100-120K",
+                            ifelse(income == 9, "$120-140K", 
+                        ifelse(income == 10, "$140-169K", 
+                            ifelse(income == 11, "$160-180K", 
+                               ifelse(income == 12, "$180-200K", 
+                                  ifelse(income == 13, "$200-220K",                                      ifelse(income == 14,"$220-250K", ifelse(income == 15, ">$250K", NA)))))))))))))))),
+         # make median split variable
+  median_income = ifelse(income_brackets == "< 10K" |
+                                  income_brackets == "$10-20K" |
+                                income_brackets == "$20-30K" |
+                                  income_brackets == "$30-40K" |
+                                income_brackets == "$40-50K" |
+                                income_brackets == "50-60K", "< 60K", "> 60K"),
+         # track negative job changes
+   negative_job_change = as.factor(ifelse(current_job_decrease_hours___1 == 1 |
+                               current_job_decrease_pay___1 == 1 |
+                               current_job_loss___1 == 1 | 
+                               current_job_low_security___1 == 1|
+                               current_job_childcare___1 == 1, 1, 0))) %>%
+  select(-income) 
+
+
+```
+
+## add scoring for standardized questionnaires
+
+calculate BSI scores 
+```{r, echo = F, warning = F}
+bsi <- names(baseline_clean)[grepl("bsi", names(baseline_clean))]
+
+N_items <- length(bsi)
+bsi_data <- baseline_clean %>%
+  select(all_of(bsi)) %>%
+  # need to subtract 1, because scale should be 0-4 not 1-5
+  mutate_if(is.numeric, funs (. -1)) %>%
+  # calculate sum 
+  mutate(bsi_ave = rowSums(., na.rm = T)/N_items) %>%
+  cbind(baseline_clean$record_id, .)  %>%
+  # if all zeros, that means they didn't fill out any Qs.
+  rename(record_id = 'baseline_clean$record_id') %>%
+  select(record_id, bsi_ave)
+
+```
+
+calcculate PTSD scores
+```{r}
+ptsd <- names(baseline_clean)[grepl("ptsd", names(baseline_clean))]
+
+N_items <- length(ptsd)
+ptsd_data <- baseline_clean %>%
+  select(all_of(ptsd)) %>%
+  mutate(ptsd_ave = rowSums(., na.rm = T)) %>%
+  cbind(baseline_clean$record_id, .)  %>%
+  # if all zeros, that means they didn't fill out any Qs.
+  filter(ptsd_ave >= N_items) %>%
+  rename(record_id = 'baseline_clean$record_id') %>%
+  select(record_id, ptsd_ave)
+
+```
+
+merge them together
+```{r}
+baseline_clean2 <- baseline_clean %>%
+  merge(., bsi_data, by = "record_id", all = T) %>%
+  merge(., ptsd_data, by = "record_id", all = T)
+ 
+nrow(baseline_clean2)
+nrow(baseline_clean)
+
+```
+
+
+## save baseline data
+```{r}
+save(baseline_clean2, file = "clean_data/baseline_clean_df.Rdata")
+
+```
+
+## de-identify!
+```{r}
+baseline_clean2 <- baseline_clean2 %>%
+  select(-c("city_live", "state", "country_live", "full_name", "primary_phone", "address_current", 
+         "partner_phone", "partner_email", "partner_recruit", "survey_email", "participant_full_name", "consent_signature", "where_gave_birth", "birth_location", "what_city_and_state_was_yo", "birth_date"))
+```
+
+## save baseline data
+```{r}
+save(baseline_clean2, file = "clean_data/baseline_deidentified_df.Rdata")
+
+```
+
