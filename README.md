@@ -1,5 +1,5 @@
 ## COPE: Covid-19 and perinatal experiences study 
-Code for the data dashboard for the COPE Study \
+Code for the interactive data dashboard for the COPE Study, using R shinys \
 Author: Michelle VanTieghem, Post-doctoral fellow at NYU Langone \
 Data collected by Baby Bees Lab, Department of Child and Adolescent Psychiatry,  NYU Langone Health \
 
