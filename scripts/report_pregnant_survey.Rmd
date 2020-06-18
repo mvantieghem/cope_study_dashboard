@@ -111,18 +111,18 @@ save(prenatal_changes_table_long, file = "tables/prenatal_changes_table_long.Rda
             prenatal_changes == "No changes"))
 ```
 
-##  Types of chahnges
+##  Types of changes
 
 ```{r,  echo = F}
-prenatal_changes_table_long %>%
-     filter(prenatal_changes != "No changes") %>%
-  mutate(prenatal_changes = reorder(prenatal_changes, Percent)) %>%
-ggplot( aes(x = prenatal_changes, y = Percent)) + 
-  geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
-   coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
-   theme(legend.position = c(0.7, 0.2)) + ylab ("") +
-  labs( title = "Changes to prenatal care relating to the COVID-19 outbreak", 
-                          subtitle = "Percent of women reporting reporting changes to prenatal care", 
-          caption = "Data aggregated from 417 pregnant women") 
+prenatal_plot <- prenatal_changes_table_long %>%
+      filter(prenatal_changes != "No changes") %>%
+      mutate(prenatal_changes = reorder(prenatal_changes, Percent)) %>%
+      ggplot( aes(x = prenatal_changes, y = Percent)) + 
+      geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
+      coord_flip()  + theme_bw() + xlab("") + ylim(0, 100)  +
+      labs( title = "Prenatal care during the COVID-19 outbreak", 
+            subtitle = "Percent of women reporting reporting changes to prenatal care", 
+            caption = "Data aggregated from 417 pregnant women")  +
+      ylab ("") 
 
 ```

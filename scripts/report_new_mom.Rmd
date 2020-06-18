@@ -160,134 +160,21 @@ save(birth_changes_table_long, file = "tables/birth_changes_table_long.Rdata")
 
 
 ```{r,  echo = F}
-birth_changes_table_long %>%
-     filter(Birth_Changes != "Any change to birth plan") %>%
-  mutate(Birth_Changes = reorder(Birth_Changes, Percent)) %>%
-ggplot( aes(x = Birth_Changes, y = Percent)) + 
-  geom_bar(stat =  "identity", position = position_dodge(), aes(fill = Delivery_date)) + 
-   coord_flip()  + theme_bw() + xlab("") + #facet_grid(~Delivery_date) +
-  scale_fill_manual(values=c("dark red", "dark gray")) +
-   theme(legend.position = c(0.7, 0.2)) + ylab ("") +
-  labs( title = "Changes to birth plans relating to the COVID-19 outbreak", 
-                          subtitle = "Percent of women reporting reporting changes to birth plan", 
-          caption = "Data source: NYU Langone COPE Study") 
-
+birth_plot <- birth_changes_table_long %>%
+      filter(Delivery_date == "After March 15, 2020" & 
+               Birth_Changes != "No changes") %>%
+      mutate(Birth_Changes = reorder(Birth_Changes, Percent)) %>%
+      ggplot(aes(x = Birth_Changes, y = Percent)) +
+      geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
+      coord_flip()  + theme_bw() + xlab("") + ylim(0, 100)+
+      labs( title = "Birth & Delivery during the COVID-19 outbreak", 
+            subtitle = "Percent of women who reported changes to their birth plans due to covid-19", 
+            caption = "Data aggregated from 147 women who delivered after March 15th, 2020")  + ylab ("") 
+    
+    # Display the plot (whether it has facets or not)
+    birth_plot
 ```
 
-## Do changes in birth plan influence distress levels?
-
-make a summary table
-```{r, echo = F, include = F}
-distress_table <- mom_data_all %>%
-  filter(!is.na(Birth_change_factor)) %>%
-   group_by(Birth_change_factor) %>%
-   summarize(mean_birth_change_distress = mean(birth_change_distress,na.rm = T), 
-             sd_birth_change_distress = sd(birth_change_distress, na.rm = T), 
-             mean_bsi = mean(bsi_ave, na.rm  = T),
-             sd_bsi  = sd(bsi_ave, na.rm = T), 
-             mean_ptsd = mean(ptsd_ave, na.rm = T), 
-             sd_ptsd = sd(ptsd_ave, na.rm = T)) 
-
-```
-
-### Birth change distress
-1 =no distress, 7 = extremely distressing \
-
-```{r}
-distress_table %>%
-   mutate(upper = mean_birth_change_distress + sd_birth_change_distress,
-         lower = mean_birth_change_distress - sd_birth_change_distress)  %>%
-ggplot( aes(x =  Birth_change_factor, y =mean_birth_change_distress, fill = Birth_change_factor)) +
-  geom_bar(stat =  "identity", position = position_dodge())  + ylim(0, 7) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
-  geom_jitter(data = mom_data_all, aes (x = Birth_change_factor, y = birth_change_distress), 
-             alpha = 0.5, width = 0.1) + xlab("") +
-  ylab("Maternal Distress ") + 
-    scale_fill_manual(values=c("dark red", "dark gray"))  + theme_bw() + 
-      theme(legend.position = "none") +
-  labs( title = "Self-reported distress due to changes to birth plan",  
-        subtitle = "0 = no distress, 7 = extreme distress" ,
-          caption = "Data source: NYU Langone COPE Study") 
-```
-
-### Brief Symptom Inventory - global scale
-
-```{r}
-distress_table %>%
-   mutate(upper = mean_bsi + sd_bsi,
-         lower = mean_bsi - sd_bsi)  %>%
-ggplot( aes(x =  Birth_change_factor, y =mean_bsi, fill = Birth_change_factor)) +
-  geom_bar(stat =  "identity", position = position_dodge())  +
-  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
-  geom_jitter(data = mom_data_all, aes (x = Birth_change_factor, y = bsi_ave), 
-             alpha = 0.5, width = 0.1) + xlab("") + ylim(-0.5, 4) +
-  ylab("Global Severity Index") + 
-    scale_fill_manual(values=c("dark red", "dark gray"))  + theme_bw() + 
-      theme(legend.position = "none") +
-  labs( title = "Symptoms relating to birth plan changes",  
-        subtitle = "Global Severity Index from Brief Symptom Inventory (BSI)" ,
-          caption = "Data source: NYU Langone COPE Study") 
-```
-
-
-## What about specifically, lack of support partner during delivery?
-
-
-make a summary table
-```{r, echo = F, include = F}
-mom_data_all <- mom_data_all %>%
-  mutate(Support_partner = as.factor(ifelse(birth_plan_changes___6 == 1,  "Not Permitted", "Permitted")))
-
-distress_table <- mom_data_all %>%
-  filter(!is.na(Support_partner)) %>%
-   group_by(Support_partner) %>%
-   summarize(mean_birth_change_distress = mean(birth_change_distress,na.rm = T), 
-             sd_birth_change_distress = sd(birth_change_distress, na.rm = T), 
-             mean_bsi = mean(bsi_ave, na.rm  = T),
-             sd_bsi  = sd(bsi_ave, na.rm = T), 
-             mean_ptsd = mean(ptsd_ave, na.rm = T), 
-             sd_ptsd = sd(ptsd_ave, na.rm = T)) 
-
-```
-
-### Birth change distress
-1 =no distress, 7 = extremely distressing \
-
-```{r}
-distress_table %>%
-   mutate(upper = mean_birth_change_distress + sd_birth_change_distress,
-         lower = mean_birth_change_distress - sd_birth_change_distress)  %>%
-ggplot( aes(x =  Support_partner, y =mean_birth_change_distress, fill = Support_partner)) +
-  geom_bar(stat =  "identity", position = position_dodge())  + ylim(0, 7) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
-  geom_jitter(data = mom_data_all, aes (x = Support_partner, y = birth_change_distress), 
-             alpha = 0.5, width = 0.1) + xlab("") +
-  ylab("Maternal Distress ") + 
-    scale_fill_manual(values=c("dark red", "dark gray"))  + theme_bw() + 
-      theme(legend.position = "none") +
-  labs( title = "Self-reported distress due to changes to birth plan",  
-        subtitle = "0 = no distress, 7 = extreme distress" ,
-          caption = "Data source: NYU Langone COPE Study") 
-```
-
-### Brief Symptom Inventory - global scale
-
-```{r}
-distress_table %>%
-   mutate(upper = mean_bsi + sd_bsi,
-         lower = mean_bsi - sd_bsi)  %>%
-ggplot( aes(x =  Support_partner, y =mean_bsi, fill = Support_partner)) +
-  geom_bar(stat =  "identity", position = position_dodge())  +
-  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
-  geom_jitter(data = mom_data_all, aes (x = Support_partner, y = bsi_ave), 
-             alpha = 0.5, width = 0.1) + xlab("") + ylim(-0.5, 4) +
-  ylab("Global Severity Index") + 
-    scale_fill_manual(values=c("dark red", "dark gray"))  + theme_bw() + 
-      theme(legend.position = "none") +
-  labs( title = "Symptoms relating to birth plan changes",  
-        subtitle = "Global Severity Index from Brief Symptom Inventory (BSI)" ,
-          caption = "Data source: NYU Langone COPE Study") 
-```
   
 # Changes in Postnatal health care due to covid-19 outbreak
 (check all that apply)
@@ -337,4 +224,18 @@ postnatal_changes_table_long %>%
   select(Postnatal_Changes, N_endorsed, Percent)
 
 save(postnatal_changes_table_long, file = "tables/postnatal_changes_table_long.Rdata")
+```
+
+```{r}
+# create the plot
+ postnatal_plot <- postnatal_changes_table_long %>%
+      filter(Postnatal_Changes != "No change") %>%
+      mutate(Postnatal_Changes = reorder(Postnatal_Changes, Percent)) %>%
+      ggplot(aes(x = Postnatal_Changes, y = Percent)) +
+      geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
+      coord_flip()  + theme_bw() + xlab("") + ylim(0, 100)+ ylab("")+
+      labs( title = "Postnatal care during the COVID-19 outbreak", 
+            subtitle = "Percent of women who reported changes to postnatla care due to covid-19", 
+            caption = "Data aggregated from 406 women with infants under 6 months of age")
+postnatal_plot
 ```

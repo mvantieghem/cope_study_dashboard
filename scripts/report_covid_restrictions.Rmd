@@ -1,0 +1,36 @@
+---
+title: "report_covid_restrictions"
+output: html_document
+---
+
+
+covid_behavior_restrictions	Which of the following behaviors are you restricting on purpose (you have decided to do these things less)? (Check all that apply)	checkbox, Required
+1	covid_behavior_restrictions___1	In-person contact with family inside the home (i.e. you have decided to stay separate from one or more members of your household)
+2	covid_behavior_restrictions___2	In-person contact with family who live outside the home
+3	covid_behavior_restrictions___3	In-person contact with friends
+4	covid_behavior_restrictions___4	In-person contact with other pregnant women or parents
+5	covid_behavior_restrictions___5	In-person contact with colleagues at work
+6	covid_behavior_restrictions___6	Regular childcare by outside care provider
+7	covid_behavior_restrictions___7	Cancellation of family or personal travel
+8	covid_behavior_restrictions___8	Family activities in outdoor spaces (e.g. beaches, forests, national parks)
+9	covid_behavior_restrictions___9	Family activities in public spaces (e.g. museums, playgrounds, theaters)
+10	covid_behavior_restrictions___10	Going to restaurants or stores
+11	covid_behavior_restrictions___11	Indoor exercise classes or recreational sports
+12	covid_behavior_restrictions___12	In-person events in the community
+13	covid_behavior_restrictions___13	In person religious services
+14	covid_behavior_restrictions___14	None apply
+Edit field in Online Designer
+Edit branching logic in Online Designer
+147	covid_behavior_miss	Which activity do you miss the most? (choose one)	radio, Required
+1	In-person contact with family and/or friends
+2	In-person contact with colleagues at work
+3	In-person contact with other pregnant women or parents
+4	Breaks from childcare duties
+5	Cancellation of family or personal travel
+6	Family activities in public spaces (e.g. museums, playgrounds, theaters)
+7	Outdoor recreational activities
+8	Going to restaurants or stores
+9	Indoor exercise classes or recreational sports
+10	In-person events in the community
+11	In person religious services
+12	Other

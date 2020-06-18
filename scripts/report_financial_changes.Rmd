@@ -1,0 +1,196 @@
+---
+title: "COPE data for NYU Langone cohort: Financial impacts"
+author: "Michelle.VanTieghem"
+date: "June 1, 2020"
+output:
+  html_document:
+    number_sections: no
+    df_print: paged
+    code_folding: show
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+      
+---
+
+## README 
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set(echo = F, message = F, warning = F, include= F)
+
+
+# load packages
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+
+# load custom packages
+source("scripts/custom_functions.R")
+
+# load cleaned data
+load("clean_data/baseline_clean_df.Rdata")
+```
+
+
+## add job change variables
+```{r}
+baseline_clean2 <- baseline_clean2 %>%
+   # track prenatal care change
+    mutate(no_resp_self_job_change = ifelse(current_job_move_remote___1 == 0 &
+                                              current_job_childcare___1 == 0 & 
+                                              current_job_decrease_hours___1 == 0 & 
+                                              current_job_decrease_pay___1 == 0 &
+                                              current_job_loss___1 == 0 & 
+                                              current_afford_childcare___1 == 0 &
+                                              current_afford_rent___1 == 0 &
+                                              current_job_low_security___1 == 0 & 
+                                              current_reduced_savings___1 == 0 & 
+                                              current_job_fire_employees___1 == 0 &
+                                              current_job_increase_hours___1 == 0 & 
+                                              current_job_increase_reporting___1 == 0 & 
+                                              current_job_more_responsbility___1 == 0 & 
+                                              current_job_no_insurance___1 == 0, 1, 0),
+            no_resp_partner_job_change = ifelse(current_job_move_remote___2 == 0 &
+                                              current_job_childcare___2 == 0 & 
+                                              current_job_decrease_hours___2 == 0 & 
+                                              current_job_decrease_pay___2 == 0 &
+                                              current_job_loss___2 == 0 & 
+                                              current_afford_childcare___2 == 0 &
+                                              current_afford_rent___2 == 0 &
+                                              current_job_low_security___2 == 0 &  
+                                                current_reduced_savings___2 == 0 &
+                                              current_job_fire_employees___2 == 0 &
+                                              current_job_increase_hours___2 == 0 & 
+                                              current_job_increase_reporting___2 == 0 & 
+                                              current_job_more_responsbility___2 == 0 & 
+                                              current_job_no_insurance___2 == 0, 1, 0),                                
+     any_self_job_change = ifelse(current_job_move_remote___1 == 1 |
+                                              current_job_childcare___1 == 1 | 
+                                              current_job_decrease_hours___1 == 1 | 
+                                              current_job_decrease_pay___1 == 1 |
+                                              current_job_loss___1 == 1 | 
+                                              current_afford_childcare___1 == 1 |
+                                              current_afford_rent___1 == 1 |
+                                              current_job_low_security___1 == 1 | 
+                                             current_reduced_savings___1 == 1 |
+                                              current_job_fire_employees___1 == 1 |
+                                              current_job_increase_hours___1 == 1 | 
+                                              current_job_increase_reporting___1 == 1 | 
+                                              current_job_more_responsbility___1 == 1 | 
+                                              current_job_no_insurance___1 == 1, 1,
+                               ifelse(no_resp_self_job_change == 1, NA, 0)),
+          any_partner_job_change = ifelse(current_job_move_remote___2 == 1 |
+                                              current_job_childcare___2 == 1 | 
+                                              current_job_decrease_hours___2 == 1 | 
+                                              current_job_decrease_pay___2 == 1 |
+                                              current_job_loss___2 == 1 | 
+                                              current_afford_childcare___2 == 1 |
+                                              current_afford_rent___2 == 1 |
+                                              current_job_low_security___2 == 1 | 
+                                              current_reduced_savings___2 == 1 |
+                                              current_job_fire_employees___2 == 1 |
+                                              current_job_increase_hours___2 == 1 | 
+                                              current_job_increase_reporting___2 == 1 | 
+                                              current_job_more_responsbility___2 == 1 | 
+                                              current_job_no_insurance___2 == 1, 1,
+                               ifelse(no_resp_self_job_change == 1, NA, 0)),
+
+     # make prettier version for plotting  
+     Self_job_change_factor = as.factor(ifelse(any_self_job_change == 0, "No changes", "Job changes")), 
+     Partner_job_change_factor = as.factor(ifelse(any_partner_job_change == 0, "No changes", "Job changes")))
+
+summary
+
+```
+
+### job changes
+
+```{r}
+nrow(baseline_clean2)
+self_job_changes_table <- baseline_clean2 %>%
+  # only include people who answered this Q
+ # filter(!is.na(any_self_job_change)) %>%
+  # group by birth before or after March 15, 2020
+  summarize(N_total = n(), 
+            'Any change to job' = sum(any_self_job_change, na.rm = T),
+            'Move to remote work' = sum(current_job_move_remote___1 == 1, na.rm  = T), 
+            'Child care challenges' = sum(current_job_childcare___1 == 1, na.rm = T),
+            'Reduced hours' = sum(current_job_decrease_hours___1 == 1, na.rm = T),
+            'Decreased pay' = sum(current_job_decrease_pay___1 == 1, na.rm = T),
+            'Loss of Job' = sum( current_job_loss___1 == 1, na.rm = T), 
+            'Lower job security' =  sum(current_job_low_security___1 == 1, na.rm = T), 
+            'Reduced ability to afford childcare' = sum(current_afford_childcare___1 == 1, na.rm = T), 
+            'Reduced ability to afford housing' = sum(current_afford_rent___1 == 1, na.rm = T),
+            'Decrease in retirement or savings' = sum(current_reduced_savings___1 == 1, na.rm = T),
+            'Having to fire employees' = sum(current_job_fire_employees___1 == 1), 
+            'Increased hours' = sum(current_job_increase_hours___1 == 1, na.rm = T), 
+            'Increased reporting at job' = sum(current_job_increase_reporting___1 == 1, na.rm = T), 
+            'Increased responsibilities' = sum(current_job_more_responsbility___1 == 1, na.rm = T), 
+            'Loss of health insurance' = sum(current_job_no_insurance___1 == 1, na.rm = T))
+           
+
+self_job_changes_table_long <- self_job_changes_table %>%
+  gather(key = "Job_changes", value = "N_endorsed", -N_total) %>%
+  select(Job_changes, N_endorsed, N_total) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2), 
+         Family_member = "Self") %>%
+  select(Family_member, Job_changes,  N_endorsed, Percent)
+```
+
+REPEAT FOR PARTNER
+```{r}
+# 
+partner_job_changes_table <- baseline_clean2 %>%
+  # only include people who answered this Q
+  # group by birth before or after March 15, 2020
+  summarize(N_total = n(), 
+            'Any change to job' = sum(any_partner_job_change, na.rm = T),
+            'Move to remote work' = sum(current_job_move_remote___2 == 1, na.rm  = T), 
+            'Child care challenges' = sum(current_job_childcare___2 == 1, na.rm = T),
+            'Reduced hours' = sum(current_job_decrease_hours___2 == 1, na.rm = T),
+            'Decreased pay' = sum(current_job_decrease_pay___2 == 1, na.rm = T),
+            'Loss of Job' = sum( current_job_loss___2 == 1, na.rm = T), 
+            'Lower job security' =  sum(current_job_low_security___2 == 1, na.rm = T), 
+            'Reduced ability to afford childcare' = sum(current_afford_childcare___2 == 1, na.rm = T), 
+            'Reduced ability to afford housing' = sum(current_afford_rent___2 == 1, na.rm = T),
+            'Decrease in retirement or savings' = sum(current_reduced_savings___2 == 1, na.rm = T),
+            'Having to fire employees' = sum(current_job_fire_employees___2 == 1), 
+            'Increased hours' = sum(current_job_increase_hours___2 == 1, na.rm = T), 
+            'Increased reporting at job' = sum(current_job_increase_reporting___2 == 1, na.rm = T), 
+            'Increased responsibilities' = sum(current_job_more_responsbility___2 == 1, na.rm = T), 
+            'Loss of health insurance' = sum(current_job_no_insurance___2 == 1, na.rm = T))
+           
+
+partner_job_changes_table_long <- partner_job_changes_table %>%
+  gather(key = "Job_changes", value = "N_endorsed", -N_total) %>%
+  select(Job_changes, N_endorsed, N_total) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2), 
+         Family_member = "Partner") %>%
+  select(Family_member, Job_changes,  N_endorsed, Percent)
+
+combo_job_changes_table_long <- rbind(self_job_changes_table_long, partner_job_changes_table_long) %>%
+  mutate(Type = ifelse(Job_changes == "Any change to job" | Job_changes == "Move to remote work" |
+                         Job_changes == "Reduced hours" | Job_changes == "Loss of Job" |
+                         Job_changes == "Lower job security" | Job_changes == "Increased hours" | 
+                         Job_changes == "Having to fire employees" | Job_changes == "Disruptions to due to child care challenges" |
+                       Job_changes == "Increased reporting at job" | Job_changes == "Increased responsibilities",
+                       "Impact on Employment", "Financial Impact"))
+#save(self_job_changes_table_long, file = "tables/self_job_changes_table_long.Rdata")
+```
+
+
+```{r,  echo = F}
+financial_impact_plot <- combo_job_changes_table_long %>%
+  mutate(Job_changes = reorder(Job_changes, Percent)) %>%
+  filter(Family_member == "Self") %>%
+ggplot( aes(x = Job_changes, y = Percent)) + 
+  geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
+   coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
+   theme(legend.position = c(0.7, 0.2)) + ylab ("Percent of women endorsing change") + 
+  labs(title = "Financial & Employment impacts", 
+       caption = "Data aggregated from XX women") + 
+   theme(axis.text = element_text(size = 12)) 
+
+
+```
