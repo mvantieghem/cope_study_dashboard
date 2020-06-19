@@ -32,7 +32,7 @@ removes duplicates, includes all responses, including incompletes.
 # load data
 ## load cleaned baseline data from script 1a
 ```{r}
-load("clean_data/baseline_clean_df.Rdata")
+load("clean_data/baseline_deidentified_df.Rdata")
 
 ```
 
@@ -72,9 +72,8 @@ summary(as.factor(fu2_df$food_sec_form_complete))
 # get demo data for all moms 
 demo_data <- baseline_clean2 %>%
   select(record_id, baseline_date, 
-          birth_date, 
          currently_pregnant, currently_mother,
-        income_brackets, education,
+        income_brackets, median_income, education,
          starts_with("race"), ethnicity,
          # covid testing
         contains("test"), contains ("symp"),

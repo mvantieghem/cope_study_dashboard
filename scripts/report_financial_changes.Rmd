@@ -29,7 +29,7 @@ library(readxl)
 source("scripts/custom_functions.R")
 
 # load cleaned data
-load("clean_data/baseline_clean_df.Rdata")
+load("clean_data/baseline_deidentified_df.Rdata")
 ```
 
 

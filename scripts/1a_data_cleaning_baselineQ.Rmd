@@ -32,7 +32,7 @@ removes duplicates, includes all responses, including incompletes.
 
 ## phase 1 baseline data 
 ```{r, echo = F}
-phase1_df <- read.csv("raw_data/COPECOVID19Perinatal_DATA_use.csv") 
+phase1_df <- read.csv("raw_data/COPECOVID19Perinatal_DATA_INACTIVE_Baseline_use.csv") 
 phase1_df2 <- phase1_df %>%
   filter(consent_agree == "Yes") %>%
   select(-contains("timestamp")) %>%
@@ -95,7 +95,7 @@ summary(as.factor(span_df2$covid_19_survey_all_complete))
 
 ## expanded baseline-only project: 
 ```{r, echo = F, message = F, warning = F}
-new_df <- read.csv("raw_data/COPECOVID19Perinatal_DATA_use.csv") 
+new_df <- read.csv("raw_data/COPECOVID19Perinatal_DATA_EXPANDED_baseline_use.csv") 
 new_df2 <- new_df %>%
   filter(consent_agree == "Yes") %>%
   select(-contains("timestamp")) %>%
@@ -115,7 +115,7 @@ nrow(new_df2)
 
 ### check N
 ```{r, eval = F}
-print(paste0("Total Records:", nrow(new_df)))
+print(paste0("Total Records:", nrow(new_df2)))
 print("Consented:")
 summary(as.factor(new_df$consent_agree))
 
@@ -137,6 +137,7 @@ span_df3 <- span_df2 %>% select(all_of(overlap))
 
 # combine all baseline data
 baseline_df <- rbind(phase1_df3, span_df3, new_df3)
+nrow(baseline_df)
 ```
 
 ## fix duplicate entries
@@ -191,7 +192,7 @@ baseline_clean <- baseline_df2 %>%
                                current_job_childcare___1 == 1, 1, 0))) %>%
   select(-income) 
 
-
+nrow(baseline_clean)
 ```
 
 ## add scoring for standardized questionnaires
@@ -238,13 +239,6 @@ baseline_clean2 <- baseline_clean %>%
  
 nrow(baseline_clean2)
 nrow(baseline_clean)
-
-```
-
-
-## save baseline data
-```{r}
-save(baseline_clean2, file = "clean_data/baseline_clean_df.Rdata")
 
 ```
 
