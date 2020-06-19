@@ -95,7 +95,7 @@ summary(as.factor(span_df2$covid_19_survey_all_complete))
 
 ## expanded baseline-only project: 
 ```{r, echo = F, message = F, warning = F}
-new_df <- read.csv("raw_data/COPECOVID19Perinatal_DATA_EXPANDED_baseline_use.csv") 
+new_df <- read.csv("raw_data/COPECOVID19Perinatal_DATA_EXPANDED_Baseline_use.csv") 
 new_df2 <- new_df %>%
   filter(consent_agree == "Yes") %>%
   select(-contains("timestamp")) %>%
