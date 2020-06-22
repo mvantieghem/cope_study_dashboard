@@ -5,4 +5,4 @@ Data collected by Baby Bees Lab, Department of Child and Adolescent Psychiatry, 
 
 
 ## Link to shiny app dashboard:
-https://mvantieghem.shiny.io/cope_data_dashboard
+https://mvantieghem.shinyapp.io/cope_data_dashboard
