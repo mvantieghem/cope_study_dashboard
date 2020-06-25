@@ -200,18 +200,42 @@ nrow(baseline_clean)
 calculate BSI scores 
 ```{r, echo = F, warning = F}
 bsi <- names(baseline_clean)[grepl("bsi", names(baseline_clean))]
+# make subsets of scales 
+bsi_somat_scale <- baseline_clean %>%
+  select(bsi_weak_body, bsi_nausea, 
+                               bsi_numbness, bsi_faint_dizzy, bsi_breathless, bsi_heart_pain) %>%
+    mutate_if(is.numeric, funs (. -1)) 
+
+bsi_dep_scale <- baseline_clean %>%
+  select(bsi_feeling_blue , bsi_no_interest , 
+         bsi_feel_lonely , bsi_hopeless , bsi_worthless) %>%
+    mutate_if(is.numeric, funs (. -1)) 
+
+bsi_anx_scale <- baseline_clean %>%
+  select(bsi_feel_tense , bsi_nervous_shaky , bsi_fearful ,
+         bsi_scared , bsi_restless , bsi_terror_spells) %>%
+    mutate_if(is.numeric, funs (. -1)) 
+
+
 
 N_items <- length(bsi)
 bsi_data <- baseline_clean %>%
   select(all_of(bsi)) %>%
   # need to subtract 1, because scale should be 0-4 not 1-5
   mutate_if(is.numeric, funs (. -1)) %>%
-  # calculate sum 
-  mutate(bsi_ave = rowSums(., na.rm = T)/N_items) %>%
+  # calculate scores - taking averages because some items may have been skipped!
+  # shold be 18 questions but the suicidal thoughts not included.
+  mutate(bsi_global = rowSums(., na.rm = T)/17,
+         bsi_somatization = rowSums(bsi_somat_scale)/6,
+         # note: do not have suicidal thoughts Q 
+         bsi_depression = rowSums(bsi_dep_scale)/5,
+         bsi_anxiety = rowSums(bsi_anx_scale)/6) %>%
   cbind(baseline_clean$record_id, .)  %>%
   # if all zeros, that means they didn't fill out any Qs.
   rename(record_id = 'baseline_clean$record_id') %>%
-  select(record_id, bsi_ave)
+  select(record_id, bsi_global, bsi_somatization, bsi_depression, bsi_anxiety)
+
+summary(bsi_data$bsi_somatization)
 
 ```
 
@@ -222,10 +246,10 @@ ptsd <- names(baseline_clean)[grepl("ptsd", names(baseline_clean))]
 N_items <- length(ptsd)
 ptsd_data <- baseline_clean %>%
   select(all_of(ptsd)) %>%
-  mutate(ptsd_ave = rowSums(., na.rm = T)) %>%
+    mutate_if(is.numeric, funs (. -1)) %>%
+  mutate(ptsd_ave = rowSums(.)/10) %>%
   cbind(baseline_clean$record_id, .)  %>%
   # if all zeros, that means they didn't fill out any Qs.
-  filter(ptsd_ave >= N_items) %>%
   rename(record_id = 'baseline_clean$record_id') %>%
   select(record_id, ptsd_ave)
 
@@ -247,10 +271,7 @@ nrow(baseline_clean)
 baseline_clean2 <- baseline_clean2 %>%
   select(-c("city_live", "state", "country_live", "full_name", "primary_phone", "address_current", 
          "partner_phone", "partner_email", "partner_recruit", "survey_email", "participant_full_name", "consent_signature", "where_gave_birth", "birth_location", "what_city_and_state_was_yo", "birth_date"))
-```
 
-## save baseline data
-```{r}
 save(baseline_clean2, file = "clean_data/baseline_deidentified_df.Rdata")
 
 ```
