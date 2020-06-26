@@ -15,6 +15,7 @@ source_rmd("scripts/1a_data_cleaning_baselineQ.Rmd")
 source_rmd("scripts/1b_data_cleaning_new_momQ.Rmd")
 source_rmd("reports/report_new_mom.Rmd")
 source_rmd("reports/report_pregnant_survey.Rmd")
+source_rmd("scripts/report_concerns_stress.Rmd")
 
 
 # USER INTERFACE -----------------------------------------------------
@@ -26,7 +27,11 @@ source_rmd("reports/report_pregnant_survey.Rmd")
 sidebar <- dashboardSidebar(
   sidebarMenu(
     menuItem("About", tabName = "About", icon = icon("th")),
-    menuItem("Perinatal", tabName = "Perinatal", icon = icon("th"))
+    menuItem("Perinatal", tabName = "Perinatal", icon = icon("th")),
+    menuItem("Covid-19", tabName = "Covid-19", icon = icon("th")),
+    menuItem("Impact", tabName = "Impact", icon = icon("th")),
+    menuItem("Stress", tabName = "Stress", icon = icon("th")),
+    menuItem("Coping", tabName= "Coping", icon = icon("th"))
   )
 )
 
@@ -55,16 +60,14 @@ body <-  dashboardBody(
                           global research harmonization. The Baby Bees Lab, along with our collaborators, created the <a href = 'https://www.covgen.org/'> COVGEN Research Alliance</a> , which aims to support these research activities by highlighting COVGEN research around 
                           the world, and providing a platform for new collaborations to emerge.")),
     
-    
-    
     # Second tab content
     tabItem(tabName = "Perinatal",
-            h3("Perinatal Health Care during the COVID-19 pandemic."), 
+            h3("Perinatal Health Care during the Covid-19 pandemic."), 
             p("We asked new and expectant moms to share their experiences about how their health care changed due to the pandemic."),
             fluidRow(
               tabBox(
                 title = "", 
-                id = "tabset1", width = "450px", selected = "Tab1", 
+                id = "tabset1", width = "450px", selected = "Summary", 
                 tabPanel('Summary',  
                          fluidRow(
                            infoBoxOutput(outputId = "prenatal_fact", 
@@ -82,6 +85,125 @@ body <-  dashboardBody(
                          plotOutput(outputId = 'birth_plot')),
                 tabPanel("Postnatal Care", 
                          plotOutput(outputId = 'postnatal_plot')) 
+              )
+            )
+    ),
+    tabItem(tabName = "Covid-19",
+            h3("Exposures to covid-19"),
+            p("Pregnant women and new mothers shared information on their exposures to covid-19"),
+            fluidRow(
+              tabBox(
+                title = "", 
+                id = "tabset1", width = "450px", selected = "Summary", 
+                tabPanel('Summary',  
+                         fluidRow(
+                           infoBoxOutput(outputId = "Pregnant Women tested positive", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "New mothers tested positive", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "Family member tested positive", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "", 
+                                         width = 12),fill = TRUE)
+                ),
+                tabPanel('Testing', 
+                         plotOutput (outputId = "testing_plot")), 
+                tabPanel('Symptoms', 
+                         plotOutput(outputId = 'symptom_plot')),
+                tabPanel('Exposures',
+                         plotOutput(outputId = 'exposures_plot')) 
+              )
+            )
+    ),
+    tabItem(tabName = "Impact", 
+            h3("Impact on daily life during the Covid-19 pandemic"),
+            p("We asked women how the covid-19 pandemic has impacted different facets of their daily lives"),
+            fluidRow(
+              tabBox(
+                title = "", 
+                id = "tabset1", width = "450px", selected = "Summary", 
+                tabPanel('Summary',  
+                         fluidRow(
+                           infoBoxOutput(outputId = "Negative job changes", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "Challenges due to lack of childcare", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "", 
+                                         width = 12),fill = TRUE)
+                ),
+                tabPanel('Employment Changes', 
+                         plotOutput (outputId = "financial_plot")), 
+                tabPanel('Restrictions', 
+                         plotOutput(outputId = 'restrictions_plot')),
+                tabPanel('Health Behaviors', 
+                         plotOutput(outputId = 'health_change_plot')), 
+                tabPanel('Changes', 
+                         plotOutput(outputId = "housing_plot"))
+                
+              )
+            )
+    ),
+    tabItem(tabName = "Stress",
+            h3("Concerns and worries during Covid-19"),
+            p("Women shared their greatest sources of concern during this stressful time."),
+            fluidRow(
+              tabBox(
+                title = "", 
+                id = "tabset1", width = "450px", selected = "Summary", 
+                tabPanel('Summary',  
+                         fluidRow(
+                           infoBoxOutput(outputId = "", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "", 
+                                         width = 12),fill = TRUE)
+                ),
+                
+                tabPanel('Top Concerns', 
+                         checkboxGroupInput(inputId = "concern_choice",
+                                      label = "Concerns about reduced access to ...",
+                                      choices = list_concerns, 
+                                      selected = "food"),
+                         plotOutput(outputId = 'concern_plot')),
+                tabPanel('Biggest Stressors',
+                         plotOutput(outputId = 'stress_plot')), 
+                tabPanel('Changes',
+                         plotOutput(outputId = 'change_plot'))
+              )
+            )
+    ),
+    tabItem(tabName = "Coping",
+            h3("Coping during the time of the Covid-19 pandemic"),
+            p("Women shared how they are coping with stress and receiving social support"),
+            fluidRow(
+              tabBox(
+                title = "", 
+                id = "tabset1", width = "450px", selected = "Summary", 
+                tabPanel('Summary',  
+                         fluidRow(
+                           infoBoxOutput(outputId = "", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "", 
+                                         width = 12),
+                           infoBoxOutput(outputId = "", 
+                                         width = 12),fill = TRUE)
+                ),
+  
+                tabPanel('Coping strategies', 
+                         plotOutput(outputId = 'coping_plot')),
+                tabPanel('Social support',
+                         plotOutput(outputId = 'social_plot')), 
+                tabPanel('Resources', 
+                         plotOutput(outputId = 'resources_plot')), 
+                tabPanel('Positive change',
+                         plotOutput(outputId = 'positive_words'))
               )
             )
     )
@@ -103,17 +225,18 @@ server_function <- function(input, output) {
   })
   output$delivery_fact <- renderInfoBox({
     infoBox(title = "Changes to birth & delivery plan",
-            subtitle = "New mothers who delivered between March 15 - June 1, 2020",
-            paste0("65%"), icon =  icon("female", class = "fas fa-female", lib = "font-awesome"))
+            subtitle = "of new mothers who delivered between March 15 - June 1, 2020",
+            paste0("65%"), icon = icon("baby", class = "far fa-baby", lib = "font-awesome"))
   })
   output$support_partner_fact <- renderInfoBox({
     infoBox(title = "support partner was not permitted at delivery",
-            paste0("40%"), icon =  icon("female", class = "fas fa-female", lib = "font-awesome"))
+            subtitle = "of new mothers who delivered between March 15 - June 1, 2020",
+            paste0("40%"), icon =  icon("heart", class = "fas fa-heart", lib = "font-awesome"))
   })
   output$postnatal_fact <- renderInfoBox({
     infoBox(title = "changes to postnatal care",
             subtitle = "Most common change: family and friends aren't able to visit",
-            paste0("85%"), icon =  icon("female", class = "fas fa-female", lib = "font-awesome"))
+            paste0("85%"), icon =  icon("", class = "", lib = "font-awesome"))
   })
   
   #load static plot created in report_new_mom.Rmd
@@ -135,6 +258,18 @@ server_function <- function(input, output) {
   output$financial_impact_plot  <- renderPlot({
     financial_impact_plot + theme(axis.text = element_text(size = 12))
     
+  })
+  output$concern_plot <- renderPlot({
+    
+    concern_plot <- concern_long %>%
+      filter(Concern %in% input$concern_choice) %>%
+      ggplot(aes(x = Rating, y = Percent)) + theme_bw() + 
+      geom_bar(stat = "identity",aes(fill = Concern), 
+               alpha = 0.5,  color = "black", position = position_dodge()) + 
+      ggtitle("Self-reported Level of Concern") + #my_colors_fill +
+      ylim(0, 100) + xlab("") +theme(axis.text = element_text(size = 12)) 
+    
+    concern_plot
   })
   
 }
