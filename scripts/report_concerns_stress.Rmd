@@ -1,0 +1,207 @@
+---
+title: "COPE EDA: impact & disruption"
+author: "Michelle.VanTieghem"
+date: "June 24, 2020"
+output:
+  html_document:
+    number_sections: no
+    df_print: kable
+    code_folding: show
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set(message = F, warning = F)
+
+library(psych)
+# load packages
+library(corrplot)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+
+# load custom packages
+source("scripts/custom_functions.R")
+
+#heme_my_barchart =
+#my_color = "dark red"
+#settings_my_barchart = ggplot() + coord_flip()  + xlab("") + ylim(0, 100) 
+
+```
+
+```{r}
+load("clean_data/impact_disruption_cleaned.Rda")
+```
+
+
+### concerns
+
+```{r}
+# process both of these sets of variables so they are on the same scale 
+# with the sam elabels.
+concern_df <- pred_vars %>%
+  select(contains("concern"), record_id) %>% 
+  # use your function to convert efficiently to labels! 
+  mutate_if(is.numeric, funs (convert_4pt_likert(.))) %>%
+  drop_na()
+
+
+# combine datasets and calculate% endorsed for each item.
+concern_long <- concern_df %>%
+  gather(key = "Concern", value = "Rating", -record_id) %>%
+  mutate(Concern = ifelse(Concern == "concern_medicine", "medicine and hygiene supplies", 
+                          ifelse(Concern == "concern_babysupplies", "baby supplies", 
+                                 ifelse(Concern == "concern_mh", "mental health care",
+                                 ifelse(Concern == "concern_health_care", "general health care", 
+                                               ifelse(Concern == "concern_food", 
+                                                      "food or goods", NA)))))) %>% 
+  # remove reduced access to social interactions, does into different category!
+  filter(!is.na(Concern)) %>%
+  group_by(Concern, Rating) %>%
+  summarize(n = n(), 
+            Percent = round(n()/nrow(concern_df)*100)) %>%
+  # make sure the factors are in logical order for plots.
+    mutate(Rating = fct_relevel(Rating, "No distress", "Mild distress", "Moderate distress", "High distress"))
+
+concern_long
+# make list of choices to plot in interactive dashboard.
+list_concerns <- unique(concern_long$Concern)
+
+# for now, plot a single one as test case.
+concern_plot <- concern_long %>%
+  ggplot(aes(x = Rating, y = Percent)) + theme_bw() + 
+  geom_bar(stat = "identity", aes(fill = Concern ), alpha = 0.5,
+           color = "black", position = position_dodge()) +
+  my_colors_fill +
+ ggtitle("Self-reported Level of Concern") +
+  ylim(0, 100) + xlab("") +theme(axis.text = element_text(size = 12)) 
+
+concern_plot
+
+```
+
+## distress variables
+
+```{r}
+
+distress_df <- pred_vars %>%
+  select(contains("distress"), record_id) %>%
+  mutate_if(is.numeric, funs (convert_7pt_likert(.))) %>%
+  drop_na()
+
+
+# combine datasets and calculate% endorsed for each item.
+distress_long <- distress_df %>%
+  gather(key = "distress", value = "Rating", -record_id) %>%
+  mutate(distress = ifelse(distress == "covid_self_distress", "potential covid-19 illness (self)",  ifelse(distress == "covid_family_distress", "potential covid-19 illness in friends or family", 
+           ifelse(distress == "current_job_distress", "current employment and financial impacts",
+              ifelse(distress == "future_job_distress", "future employment and financial impacts",  NA))))) %>% 
+  # remove reduced access to social interactions, does into different category!
+  filter(!is.na(distress)) %>%
+  group_by(distress, Rating) %>%
+  summarize(n = n(), 
+            Percent = round(n()/nrow(distress_df)*100)) %>%
+  # make sure the factors are in logical order for plots.
+    mutate(Rating = fct_relevel(Rating, "No distress", "Mild distress", "Moderate distress", "High distress"))
+
+distress_long
+# make list of choices to plot in interactive dashboard.
+list_distress <- unique(distress_long$distress)
+
+# for now, plot a single one as test case.
+distress_plot <- distress_long %>%
+  ggplot(aes(x = Rating, y = Percent)) + theme_bw() + 
+  geom_bar(stat = "identity", aes(fill = distress ), alpha = 0.5,
+           color = "black", position = position_dodge()) +
+  my_colors_fill +
+ ggtitle("Self-reported Level of distress") +
+  ylim(0, 100) + xlab("") +theme(axis.text = element_text(size = 12)) 
+
+distress_plot
+```
+
+
+
+### Disrupt variables
+```{r}
+disrupt_long <- pred_vars %>%
+  select(contains("disrupted")) %>%
+  gather(key = "disrupt", value = "Rating") %>%
+  mutate(disrupt = str_remove(disrupt, "disrupted_"), 
+         disrupt = str_remove(disrupt, "_rating"))
+summary(as.factor(disrupt_long$disrupt))
+# women are more worried about the future job changes 
+# women are more worried about covid for family than self
+disrupt_plot <- disrupt_long %>%
+    mutate(disrupt = fct_reorder(disrupt, Rating)) %>%
+  ggplot(aes(x = disrupt, y = Rating)) + theme_bw() +
+   theme(legend.position = "none") + geom_boxplot(width  = 0.5) + xlab ("") +
+   geom_jitter(alpha = 0.1, width = 0.1, height = 0.1, aes(color = disrupt)) + 
+ ggtitle("Self-reported Rating of disruptions to daily life", 
+         subtitle = "0 = No disruption, 4 = Extreme disruption")
+disrupt_plot
+
+```
+
+## General impact of covid
+```{r, include = F, eval = F}
+impact <- pred_vars %>%
+  select(impact_covid_rating, stress_covid_rating) %>%
+  # valence conversion, so negative numbers mean negative impact.
+  mutate(
+         impact_covid_rating = impact_covid_rating -1, 
+         stress_covid_rating = stress_covid_rating -1)
+```
+
+```{r, include = F, eval = F}
+impact_plot <- impact %>%
+  gather(key = measure, value = Rating) %>% 
+  mutate(measure = ifelse(measure == "impact_covid_rating", 
+                          "Daily Impact", "Stress Level")) %>%
+  ggplot(aes(x = measure, y = Rating)) + 
+  geom_boxplot(width = 0.5) + theme_bw() + 
+  geom_jitter(aes (x = measure, y = Rating,  color = measure), 
+              width = 0.1, height = 0.1, alpha = 0.1) + 
+  xlab ("") +  theme(legend.position = "none") 
+impact_plot
+```
+
+### impact on life vs. reported stress
+extremely correlated! but there are some people who report more impact without a lot of stress.
+```{r, include = F, eval = F}
+
+stress_impact_cor <- impact %>%
+  ggplot(aes(x = impact_covid_rating, y = stress_covid_rating)) +
+  geom_jitter(alpha = 0.5, width = 0.1, height = 0.1) + theme_bw() +
+  geom_smooth(method = "lm") + ylab ("Level of Stress due to Covid-19") + 
+  xlab ("Level of impact on daily life due to Covid-19")
+
+stress_impact_cor
+```
+
+## change variables 
+
+```{r, include = F, eval = F}
+N_responded <- nrow(valence_vars %>% filter(!is.na(impact_covid_valence)))
+
+impact_table <- valence_vars %>%  
+  mutate(valence = ifelse(impact_covid_valence> 0, "positive",
+                          ifelse(impact_covid_valence == 0, "neutral", "negative"))) %>%
+  filter(!is.na(valence)) %>%
+  group_by(valence) %>%
+  summarize(n = n(), 
+            percent = round((n/N_responded)*100))
+
+valence_fig <- impact_table %>%
+  ggplot(aes(x = valence, y = percent)) + coord_flip()  +
+  geom_bar(stat = "identity") + theme_bw() + xlab ("") + ylim(0, 100) +
+  ylab("Percent") +
+  ggtitle("Has covid-19had a positive or negative impact on your life?")
+
+valence_fig
+```
+

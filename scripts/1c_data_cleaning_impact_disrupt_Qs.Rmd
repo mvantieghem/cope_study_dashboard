@@ -65,7 +65,7 @@ rating_vars <- baseline_clean3 %>%
   mutate_if(is.numeric, funs (. -1)) %>%
 # make a version that futher removes columsn we don't want, and removes NAs.
   select(-"other_great_source_stress", -source_stress_covid) %>%
-  drop_na()
+  drop_na() 
 
 nrow(rating_vars)
 ```

@@ -16,7 +16,7 @@ source_rmd("scripts/1b_data_cleaning_new_momQ.Rmd")
 source_rmd("reports/report_new_mom.Rmd")
 source_rmd("reports/report_pregnant_survey.Rmd")
 source_rmd("scripts/report_concerns_stress.Rmd")
-
+source_rmd("reports/report_financial_changes.Rmd")
 
 # USER INTERFACE -----------------------------------------------------
 
@@ -27,11 +27,11 @@ source_rmd("scripts/report_concerns_stress.Rmd")
 sidebar <- dashboardSidebar(
   sidebarMenu(
     menuItem("About", tabName = "About", icon = icon("th")),
-    menuItem("Perinatal", tabName = "Perinatal", icon = icon("th")),
-    menuItem("Covid-19", tabName = "Covid-19", icon = icon("th")),
-    menuItem("Impact", tabName = "Impact", icon = icon("th")),
-    menuItem("Stress", tabName = "Stress", icon = icon("th")),
-    menuItem("Coping", tabName= "Coping", icon = icon("th"))
+    menuItem("Healthcare", tabName = "Healthcare", icon = icon("th"))
+  #  menuItem("Covid-19", tabName = "Covid-19", icon = icon("th")),
+   # menuItem("Impact", tabName = "Impact", icon = icon("th")),
+    #menuItem("Stress", tabName = "Stress", icon = icon("th"))
+    #menuItem("Coping", tabName= "Coping", icon = icon("th"))
   )
 )
 
@@ -61,7 +61,7 @@ body <-  dashboardBody(
                           the world, and providing a platform for new collaborations to emerge.")),
     
     # Second tab content
-    tabItem(tabName = "Perinatal",
+    tabItem(tabName = "Healthcare",
             h3("Perinatal Health Care during the Covid-19 pandemic."), 
             p("We asked new and expectant moms to share their experiences about how their health care changed due to the pandemic."),
             fluidRow(
@@ -124,22 +124,25 @@ body <-  dashboardBody(
                 id = "tabset1", width = "450px", selected = "Summary", 
                 tabPanel('Summary',  
                          fluidRow(
-                           infoBoxOutput(outputId = "Negative job changes", 
+                           infoBoxOutput(outputId = "percent_job_future_fact", 
                                          width = 12),
-                           infoBoxOutput(outputId = "Challenges due to lack of childcare", 
+                           infoBoxOutput(outputId = "percent_childcare_fact", 
                                          width = 12),
                            infoBoxOutput(outputId = "", 
                                          width = 12),
                            infoBoxOutput(outputId = "", 
                                          width = 12),fill = TRUE)
                 ),
-                tabPanel('Employment Changes', 
-                         plotOutput (outputId = "financial_plot")), 
-                tabPanel('Restrictions', 
+                tabPanel('Impact on Employment', 
+                         h4("How has Covid-19 impacted women's employment and financial stuatus?"),
+                         plotOutput (outputId = "financial_impact_plot")),
+                       #  h4("How distressed are women about these impacts?"),
+                        # plotOutput(outputId = "job_distress_plot")),
+                tabPanel('Restrictions to Activities', 
                          plotOutput(outputId = 'restrictions_plot')),
-                tabPanel('Health Behaviors', 
+                tabPanel('Disruptions', 
                          plotOutput(outputId = 'health_change_plot')), 
-                tabPanel('Changes', 
+                tabPanel('Other Changes', 
                          plotOutput(outputId = "housing_plot"))
                 
               )
@@ -218,25 +221,30 @@ ui <-  dashboardPage(
 # SERVER FUNCTION ---------------------------------------------------------
 
 server_function <- function(input, output) {
+  ## OUTPUTS FOR HEALTHCARE PANEL ----- ----- ----- ----- ----- ----- -----
   output$prenatal_fact <- renderInfoBox({
-    infoBox(title = "changes to prenatal care",
+    infoBox(title = "Pregnant women reporting changes to prenatal care",
             subtitle = "Most common change: changes to virtual care",
-            paste0("75%"), icon = icon("female", class = "fas fa-female", lib = "font-awesome"))
+            paste0("75%"), color = "navy", 
+            icon = icon("female", class = "fas fa-female", lib = "font-awesome"))
   })
   output$delivery_fact <- renderInfoBox({
-    infoBox(title = "Changes to birth & delivery plan",
-            subtitle = "of new mothers who delivered between March 15 - June 1, 2020",
-            paste0("65%"), icon = icon("baby", class = "far fa-baby", lib = "font-awesome"))
+    infoBox(title = "New mothers reporting changes to birth & delivery plan",
+            subtitle = "of deliveries between March 15 - June 1, 2020",
+            paste0("65%"), color = "navy",
+            icon = icon("hospital", class = "fas fa-hospital", lib = "font-awesome"))
   })
   output$support_partner_fact <- renderInfoBox({
     infoBox(title = "support partner was not permitted at delivery",
-            subtitle = "of new mothers who delivered between March 15 - June 1, 2020",
-            paste0("40%"), icon =  icon("heart", class = "fas fa-heart", lib = "font-awesome"))
+            subtitle = "of deliveries between March 15 - June 1, 2020",
+            paste0("40%"), color = "navy",
+            icon =  icon("heart", class = "fas fa-heart", lib = "font-awesome"))
   })
   output$postnatal_fact <- renderInfoBox({
-    infoBox(title = "changes to postnatal care",
+    infoBox(title = "New mothers reporting changes to postnatal care",
             subtitle = "Most common change: family and friends aren't able to visit",
-            paste0("85%"), icon =  icon("", class = "", lib = "font-awesome"))
+            paste0("85%"), color = "navy",
+            icon =  icon("home", class = "fas fa-home", lib = "font-awesome"))
   })
   
   #load static plot created in report_new_mom.Rmd
@@ -254,11 +262,31 @@ server_function <- function(input, output) {
     prenatal_plot +  theme(axis.text = element_text(size = 12))
   })
   
+  ## OUTPUTS FOR IMPACT PANEL ---- ----- ----- ----- ----- -------
   #load static plot that was created in report_financial_changes.Rmd
-  output$financial_impact_plot  <- renderPlot({
+  output$percent_childcare_fact  <- renderInfoBox({
+    infoBox(title = "Experiencing childcare challenges due to Covid-19",
+            paste0(percent_childcare, "%"),
+            icon = icon("child", class = "fas fa-child", lib = "font-awesome"),
+            color = "navy")
+  })
+  output$percent_job_future_fact <- renderInfoBox({
+    infoBox(title = "Worried about future employment impacts of Covid-19",
+            paste0(percent_job_future, "%"), 
+            icon = icon("dollar-sign", class = "fas fa-dollar-sign", lib = "font-awesome"), 
+            color = "navy")
+  })
+  
+   output$financial_impact_plot  <- renderPlot({
     financial_impact_plot + theme(axis.text = element_text(size = 12))
     
   })
+  output$job_distress_plot  <- renderPlot({
+    job_distress_plot 
+    
+  })
+  
+  ## OUTPUTS FOR STRESS PANEL  ----- ----- ----- ----- ----- -----
   output$concern_plot <- renderPlot({
     
     concern_plot <- concern_long %>%
@@ -267,7 +295,7 @@ server_function <- function(input, output) {
       geom_bar(stat = "identity",aes(fill = Concern), 
                alpha = 0.5,  color = "black", position = position_dodge()) + 
       ggtitle("Self-reported Level of Concern") + #my_colors_fill +
-      ylim(0, 100) + xlab("") +theme(axis.text = element_text(size = 12)) 
+      ylim(0, 100) + xlab("") + theme(axis.text = element_text(size = 12)) 
     
     concern_plot
   })

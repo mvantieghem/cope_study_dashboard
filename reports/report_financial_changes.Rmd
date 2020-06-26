@@ -182,15 +182,68 @@ combo_job_changes_table_long <- rbind(self_job_changes_table_long, partner_job_c
 
 ```{r,  echo = F}
 financial_impact_plot <- combo_job_changes_table_long %>%
-  mutate(Job_changes = reorder(Job_changes, Percent)) %>%
   filter(Family_member == "Self") %>%
+    mutate(Job_changes = reorder(Job_changes, Percent)) %>%
+
 ggplot( aes(x = Job_changes, y = Percent)) + 
   geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
    coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
-   theme(legend.position = c(0.7, 0.2)) + ylab ("Percent of women endorsing change") + 
+    ylab ("Percent of women endorsing change") + 
   labs(title = "Financial & Employment impacts", 
-       caption = "Data aggregated from XX women") + 
-   theme(axis.text = element_text(size = 12)) 
+       caption = "Data aggregated from XX women") +
+  theme(axis.text = element_text(size = 12)) +  theme_bw() 
 
+financial_impact_plot 
+
+```
+
+## related measures of distress 
+
+```{r}
+# open the distress data...
+load("clean_data/impact_disruption_cleaned.Rda")
+
+# re-organize 
+job_distress_df <- pred_vars %>%
+  select(contains("job_distress"), record_id) %>%
+  mutate_if(is.numeric, funs (convert_7pt_likert(.))) %>%
+  drop_na()
+
+# combine datasets and calculate% endorsed for each item.
+job_distress_long <- job_distress_df %>%
+  gather(key = "Factor", value = "Rating", -record_id) %>%
+  mutate(Factor = ifelse(Factor ==  "current_job_distress", "Current Impact",
+              ifelse(Factor == "future_job_distress", "Future Impact",  NA))) %>% 
+  # remove reduced access to social interactions, does into different category!
+  filter(!is.na(Factor)) %>%
+  group_by(Factor, Rating) %>%
+  summarize(n = n(), 
+            Percent = round(n()/nrow(distress_df)*100)) %>%
+  # make sure the factors are in logical order for plots.
+    mutate(Rating = fct_relevel(Rating, "No distress", "Mild distress", "Moderate distress", "High distress"))
+
+#distress_long
+
+# for now, plot a single one as test case.
+job_distress_plot <- job_distress_long %>%
+  ggplot(aes(x = Rating, y = Percent)) + theme_bw() + 
+  geom_bar(stat = "identity", alpha = 0.5,aes(fill = Factor),
+           color = "black", position = position_dodge()) +
+  my_colors_fill + coord_flip() + 
+  ylim(0, 50) + xlab("") +
+   theme(axis.text = element_text(size = 12),
+                              legend.title = element_blank(),
+                              legend.text = element_text(size = 10), 
+                              legend.position = "top")
+
+job_distress_plot
+```
+
+
+## summary stats
+```{r}
+percent_childcare <- round(combo_job_changes_table_long$Percent[combo_job_changes_table_long$Job_changes == "Child care challenges" & combo_job_changes_table_long$Family_member == "Self"])
+
+percent_job_future <- job_distress_long$Percent[job_distress_long$Rating == "High distress" & job_distress_long$Factor == "future Impact"]
 
 ```

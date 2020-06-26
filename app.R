@@ -71,19 +71,7 @@ ui <-  fluidPage( titlePanel("COPE: Coronovirus-19 and Perinatal Experiences Stu
                                    with 70% reporting that family and friends were unable to visit.")
                             )
                  ),
-                tabPanel('Covid-19 Exposures',
-                         h3("Rates of Covid-19 symptoms, testing, and exposures"), 
-                         p("New and expectant mothers ...."),
-                         p(""), # blank line, more space before tabs
-                         #   allow the main panel to have tabs
-                         tabsetPanel(type = 'tabs',
-                                     tabPanel('Covid-19 Symptoms'), 
-                                     tabPanel("Covid-19 Testing"), 
-                                     tabPanel("Covid-19 Exposures")
-                                     # social distruptions
-                         ),
-                         h4("Key findings:")
-                ), 
+
                 tabPanel('Impact',
                         mainPanel(
                            h3("How has the Covid-19 pandemic impacted pregnant and expectant moms?"), 
@@ -115,35 +103,6 @@ ui <-  fluidPage( titlePanel("COPE: Coronovirus-19 and Perinatal Experiences Stu
                            )
                         )
                 ),
-                tabPanel('Social Support',
-                         h3("How are women receiving social support during the COVID-19 pandemic?"), 
-                         p("We asked women about how they have adapted to covid-19 to meet their social support needs."),
-                         tabsetPanel(type = 'tabs',
-                                     # make a plot using the output from the server
-                                     # identify it using output id 
-                                     tabPanel('Changes in Social Support'),  
-                                     # do women report increases or decreases in social support
-                                     tabPanel('Means of Social Support'),
-                                     # how are they getting social support, and who are they finding most supportive?
-                                     tabPanel('Disruption to social support')
-                                     # how distressed are women about changes to social support? ideally not a lot.
-                          ),
-                          h4("Key findings:")
-                ), 
-                tabPanel('Coping and Resilience',
-                           h3("How are women coping with the Covid-19 pandemic?"), 
-                           p("We wanted to understand how women are coping with stressors associated with the pandemic,
-                             and learn about how the circumstances of the pandemic may have influenced them in positive ways"),
-                          tabsetPanel(type = 'tabs',
-                                      # make a plot using the output from the server
-                                      # identify it using output id 
-                                      tabPanel('Coping Strategies'),  
-                                      tabPanel('Positive Impacts'),
-                                      tabPanel('Advice For Other Women')
-                                      # social distruptions
-                          ),
-                          h4("Key findings:")
-                    ),
                   tabPanel('Mental Health',
                            h3("What factors are most important to predict maternal mental health?"), 
                            p("Interactive plot where X variables are factors \
