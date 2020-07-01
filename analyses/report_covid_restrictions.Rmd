@@ -1,0 +1,130 @@
+---
+title: "COPE data for NYU Langone cohort: behavior restrictions"
+author: "Michelle.VanTieghem"
+date: "June 1, 2020"
+output:
+  html_document:
+    number_sections: no
+    df_print: paged
+    code_folding: show
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+      
+---
+# README
+note: only including participants who fully completed baseline survey.
+
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set( message = F, warning = F)
+
+
+# load packages
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+
+# load custom packages
+source("custom_functions.R")
+
+# load cleaned data
+load("../clean_data/baseline_deidentified_df.Rdata")
+```
+
+```{r}
+behavior_restrict <- baseline_clean2 %>%
+  select(contains("behavior_restrictions"))
+
+baseline_clean2 <- baseline_clean2 %>%
+        mutate(num_restrictions = rowSums(behavior_restrict, na.rm = T), 
+               any_restrictions = ifelse(num_restrictions > 1,1, 0),
+               no_resp_restrictions = ifelse(num_restrictions == 0, 1, 0), 
+               activities_miss_most = ifelse(covid_behavior_miss == 1, 
+            	"In-person contact with family or friends",
+            	ifelse(covid_behavior_miss == 2, "In-person contact with colleagues at work",
+            	       ifelse(covid_behavior_miss == 3, "In-person contact with other parents", ifelse(covid_behavior_miss == 4, "Breaks from childcare duties",                                ifelse(covid_behavior_miss == 5, "Cancellation of family or personal travel",                                        ifelse(covid_behavior_miss == 6, "Family activities in public spaces",                                        ifelse(covid_behavior_miss == 7, "Outdoor recreational activities",                                         ifelse(covid_behavior_miss == 8, "Going to restaurants or stores", ifelse(covid_behavior_miss == 9, "Exercise classes or recreational sports",                            ifelse(covid_behavior_miss == 10, "In-person events in the community",                            ifelse(covid_behavior_miss == 11, "In person religious events",                                          ifelse(covid_behavior_miss == 12, "Other", NA)))) ))))))))) %>%
+    filter(covid_19_survey_all_complete == 2) 
+
+```
+
+## make table for restrictions
+```{r}
+
+restrict_table <- baseline_clean2 %>%
+  summarize(N_total = n(),
+            'In-person contact with member of household' = sum(covid_behavior_restrictions___1),
+            'In-person contact with family not in household' = sum(covid_behavior_restrictions___2),
+            'In-person contact with friends' = sum(covid_behavior_restrictions___3),
+            'In person contact with other parents' = sum(covid_behavior_restrictions___4),
+            'In-person contact with work colleagues' = sum(covid_behavior_restrictions___5), 
+            'In-person events in the community' = sum(covid_behavior_restrictions___12), 
+            'In-person religious events' = sum(covid_behavior_restrictions___13),
+            'Regular childcare by outside care provider' = sum(covid_behavior_restrictions___6), 
+            'Cancellation of family or personal travel' = sum(covid_behavior_restrictions___7), 
+            'Family activities in outdoor spaces' = sum(covid_behavior_restrictions___8), 
+            'Family activities in public spaces' = sum(covid_behavior_restrictions___9),
+            'Going to restaurants or stores' = sum(covid_behavior_restrictions___10), 
+            'Exercise classes or recreational sports' = sum(covid_behavior_restrictions___11))
+
+restrict_table_long <- restrict_table %>%
+  gather(key = "Restrictions", value = "N_endorsed", -N_total) %>%
+  select(Restrictions, N_endorsed, N_total) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
+  select(Restrictions,  N_endorsed, Percent)
+restrict_table_long
+```
+
+## plot restrictions
+```{r,  echo = F}
+restrictions_plot <- restrict_table_long %>%
+    mutate(Restrictions = reorder(Restrictions, Percent)) %>%
+ggplot( aes(x = Restrictions, y = Percent)) + 
+  geom_bar(stat =  "identity", position = position_dodge(), fill = "navy") + 
+   coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
+    ylab ("Percent") +  custom_theme + 
+  labs(title = "Behavior restrictions due to the Covid-19 pandemic", 
+    caption = paste("Data aggregated from", restrict_table$N_total, "new and expecting mothers")) 
+
+restrictions_plot 
+
+```
+
+##  table for which activities people miss the most
+```{r}
+N_total <- nrow(baseline_clean2 %>% filter(!is.na(activities_miss_most)))
+miss_table <- baseline_clean2 %>%
+  filter(!is.na(activities_miss_most)) %>%
+  group_by(activities_miss_most) %>%
+  summarize(N_endorsed = n()) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
+  select(activities_miss_most, N_endorsed, Percent)
+
+miss_table
+
+```
+
+## plot missed activities by frequency
+```{r,  echo = F}
+miss_impact_plot <- miss_table %>%
+    mutate(activities_miss_most = reorder(activities_miss_most, Percent)) %>%
+  ggplot( aes(x = activities_miss_most, y = Percent)) + 
+  geom_bar(stat =  "identity", position = position_dodge(), fill = "navy") + 
+   coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
+    ylab ("Percent") +  custom_theme +
+  labs(title = "Which activities do women miss the most?", 
+       caption = paste("Data aggregated from", N_total, "new and expecting mothers"))
+miss_impact_plot 
+
+```
+
+## facts
+```{r}
+
+miss_most <- miss_table %>%
+  filter(Percent == max(Percent)) %>%
+  mutate(Percent = round(Percent)) 
+
+miss_most$Percent
+```

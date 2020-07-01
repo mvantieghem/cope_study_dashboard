@@ -1,0 +1,168 @@
+---
+title: "COPE EDA: impact & disruption"
+author: "Michelle.VanTieghem"
+date: "June 24, 2020"
+output:
+  html_document:
+    number_sections: no
+    df_print: kable
+    code_folding: show
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set(message = F, warning = F)
+
+library(psych)
+# load packages
+library(corrplot)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+
+# load custom packages
+source("custom_functions.R")
+```
+
+```{r}
+load("../clean_data/impact_disruption_cleaned.Rda")
+```
+
+## correlation plot 
+all are positively related! 
+especially concerns for medicine, food, healthcare, supplies.
+```{r}
+
+cor_vars <- cor(pred_vars_no_labels)
+corrplot(cor_vars, type = "lower")
+
+```
+
+### concern variables
+0	Not of concern \
+1	Mildly distressing \
+2	Moderately distressing \
+3	Highly distressing \
+
+```{r}
+
+concern_long <- pred_vars %>%
+  select(contains("concern")) %>% 
+  gather(key = "Concern", value = "Rating") %>%
+  mutate(Concern = str_remove(Concern, "concern_"))
+
+# plot ratings from lowest to highest
+concern_plot <- concern_long %>%
+  mutate(Concern = fct_reorder(Concern, Rating)) %>%
+  ggplot(aes(x = Concern, y = Rating)) + theme_bw() + 
+  geom_boxplot(width  = 0.5) + xlab ("") + theme(legend.position = "none") +
+   geom_jitter(alpha = 0.1, width = 0.1, height = 0.1, aes(color = Concern)) +
+ ggtitle("Self-reported Rating of Concerns", subtitle = "0 = no concern, 3 = very concerned")
+
+concern_plot
+```
+
+### Distress variables
+
+```{r}
+distress_long <- pred_vars %>%
+  select(contains("distress")) %>%
+  gather(key = "Distress", value = "Rating") %>%
+  mutate(Distress = str_remove(Distress, "_distress"))
+
+# women are more worried about the future job changes 
+# women are more worried about covid for family than self
+distress_plot <- distress_long %>%
+    mutate(Distress = fct_reorder(Distress, Rating)) %>%
+  ggplot(aes(x = Distress, y = Rating)) + theme_bw() + 
+  geom_boxplot(width  = 0.5) + xlab ("") + theme(legend.position = "none") +
+   geom_jitter(alpha = 0.1, width = 0.1, height = 0.1, aes(color = Distress)) +
+ ggtitle("Self-reported Rating of Distress", subtitle = "0 = no distress, 7 = very distressing")
+
+distress_plot
+```
+
+
+### Disrupt variables
+```{r}
+disrupt_long <- pred_vars %>%
+  select(contains("disrupted")) %>%
+  gather(key = "disrupt", value = "Rating") %>%
+  mutate(disrupt = str_remove(disrupt, "disrupted_"), 
+         disrupt = str_remove(disrupt, "_rating"))
+
+# women are more worried about the future job changes 
+# women are more worried about covid for family than self
+disrupt_plot <- disrupt_long %>%
+    mutate(disrupt = fct_reorder(disrupt, Rating)) %>%
+  ggplot(aes(x = disrupt, y = Rating)) + theme_bw() +
+   theme(legend.position = "none") + geom_boxplot(width  = 0.5) + xlab ("") +
+   geom_jitter(alpha = 0.1, width = 0.1, height = 0.1, aes(color = disrupt)) + 
+ ggtitle("Self-reported Rating of disruptions to daily life", 
+         subtitle = "0 = No disruption, 4 = Extreme disruption")
+disrupt_plot
+
+```
+
+## General impact of covid
+```{r}
+impact <- baseline_clean3 %>%
+  select(impact_covid_rating, stress_covid_rating) %>%
+  # valence conversion, so negative numbers mean negative impact.
+  mutate(
+         impact_covid_rating = impact_covid_rating -1, 
+         stress_covid_rating = stress_covid_rating -1)
+```
+
+```{r}
+impact_plot <- impact %>%
+  gather(key = measure, value = Rating) %>% 
+  mutate(measure = ifelse(measure == "impact_covid_rating", 
+                          "Daily Impact", "Stress Level")) %>%
+  ggplot(aes(x = measure, y = Rating)) + 
+  geom_boxplot(width = 0.5) + theme_bw() + 
+  geom_jitter(aes (x = measure, y = Rating,  color = measure), 
+              width = 0.1, height = 0.1, alpha = 0.1) + 
+  xlab ("") +  theme(legend.position = "none") 
+impact_plot
+```
+
+### impact on life vs. reported stress
+extremely correlated! but there are some people who report more impact without a lot of stress.
+```{r}
+
+stress_impact_cor <- impact %>%
+  ggplot(aes(x = impact_covid_rating, y = stress_covid_rating)) +
+  geom_jitter(alpha = 0.5, width = 0.1, height = 0.1) + theme_bw() +
+  geom_smooth(method = "lm") + ylab ("Level of Stress due to Covid-19") + 
+  xlab ("Level of impact on daily life due to Covid-19")
+
+stress_impact_cor
+```
+
+## change variables 
+
+```{r}
+N_responded <- nrow(valence_vars %>% filter(!is.na(impact_covid_valence)))
+
+impact_table <- valence_vars %>%  
+  mutate(valence = ifelse(impact_covid_valence> 0, "positive",
+                          ifelse(impact_covid_valence == 0, "neutral", "negative"))) %>%
+  filter(!is.na(valence)) %>%
+  group_by(valence) %>%
+  summarize(n = n(), 
+            percent = round((n/N_responded)*100))
+
+valence_fig <- impact_table %>%
+  ggplot(aes(x = valence, y = percent)) + coord_flip()  +
+  geom_bar(stat = "identity") + theme_bw() + xlab ("") + ylim(0, 100) +
+  ylab("Percent") +
+  ggtitle("Has covid-19had a positive or negative impact on your life?")
+
+valence_fig
+```
+

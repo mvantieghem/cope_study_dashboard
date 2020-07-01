@@ -19,19 +19,19 @@ Note: only including pregnant women! \
 prenatal change groups (1 = yes, 0 = no) reflected all changes except for cancellation of hospital tours; which happened to nearly everyone.
 
 ```{r, echo = F, message = F, warning = F, include = F}
-knitr::opts_chunk$set(echo = F, message = F, warning = F, include= F)
-
+knitr::opts_chunk$set(message = F, warning = F)
 
 # load packages
 library(tidyverse)
 library(ggplot2)
 library(readxl)
+library(gridExtra)
 
 # load custom packages
-source("scripts/custom_functions.R")
+source("custom_functions.R")
 
 # load cleaned data
-load("clean_data/baseline_deidentified_df.Rdata")
+load("../clean_data/baseline_deidentified_df.Rdata")
 ```
 
 
@@ -91,8 +91,6 @@ prenatal_changes_table <- baseline_clean2 %>%
            'Change to virtual prenatal care visits' = sum(prenatal_care_changes___10 == 1, na.rm = T),
            'No changes' = sum(prenatal_care_changes___11 == 1, na.rm = T))
            
-
-
 prenatal_changes_table_long <- prenatal_changes_table %>%
   gather(key = "prenatal_changes", value = "N_endorsed", -N_total) %>%
   select(prenatal_changes, N_endorsed, N_total) %>%
@@ -118,11 +116,57 @@ prenatal_plot <- prenatal_changes_table_long %>%
       filter(prenatal_changes != "No changes") %>%
       mutate(prenatal_changes = reorder(prenatal_changes, Percent)) %>%
       ggplot( aes(x = prenatal_changes, y = Percent)) + 
-      geom_bar(stat =  "identity", position = position_dodge(), fill = "dark red") + 
-      coord_flip()  + theme_bw() + xlab("") + ylim(0, 100)  +
-      ylab("Percent of women who reported changes") + 
-      labs( title = "Prenatal care during the COVID-19 outbreak", 
-            caption = "Data aggregated from 417 pregnant women")  +
-      xlab ("") 
+      geom_bar(stat =  "identity", position = position_dodge(), fill = "dark blue") + 
+      coord_flip()  +  xlab("") + ylim(0, 100)  +
+      ylab("Percent") + 
+      labs( title = "Changes to Prenatal care during the Covid-19 outbreak", 
+            caption = paste("Data aggregated from", prenatal_changes_table$N_total, "pregnant women"))  +
+      xlab ("") + custom_theme 
+prenatal_plot
+```
 
+## pregnancy concerns 
+```{r}
+
+preg_concern_vars <- baseline_clean2 %>%
+  select(preg_birth_concern, preg_support_concern, preg_child_health_concern) %>%
+  filter(!is.na(preg_birth_concern) & !is.na(preg_support_concern) & !is.na(preg_child_health_concern))
+N_total <- nrow(preg_concern_vars)
+
+preg_concern_table <- preg_concern_vars %>%
+  gather(key = "Concern", value = "Endorsed") %>%
+  group_by(Concern, Endorsed) %>%
+  summarize(N = n()) %>%
+  mutate(Percent = round((N/N_total)*100)) %>%
+  mutate(Endorsed = ifelse(Endorsed == 0, "No", "Yes"))
+
+preg_concern_table
+```
+
+## plot
+```{r}
+# are concerned about...
+preg_concern_plot1 <- preg_concern_table %>%
+  filter(Concern == "preg_birth_concern") %>%
+  ggplot(aes(x = Endorsed, y = Percent)) +
+  geom_bar(stat = "identity", fill = "dark blue") + coord_flip() + 
+  custom_theme + xlab("") + ylim(0, 100) +
+  labs(title = "Possible changes to your medical care during your baby's birth?")
+
+
+preg_concern_plot2 <- preg_concern_table %>%
+  filter(Concern == "preg_support_concern") %>%
+  ggplot(aes(x = Endorsed, y = Percent)) +
+  geom_bar(stat = "identity", fill = "dark blue") + coord_flip() + 
+  custom_theme + xlab("") + ylim(0, 100) +
+  labs(title = "Involvement of your family and friends in your baby's birth?")
+
+preg_concern_plot3 <- preg_concern_table %>%
+  filter(Concern == "preg_child_health_concern") %>%
+  ggplot(aes(x = Endorsed, y = Percent)) +
+  geom_bar(stat = "identity", fill = "dark blue") + coord_flip() + 
+  custom_theme + xlab("") + ylim(0, 100) +
+  labs(title = "Your child's health as a result of the Covid-19 outbreak?")
+
+#grid.arrange(preg_concern_plot1, preg_concern_plot2, preg_concern_plot3, nrow = 3)
 ```

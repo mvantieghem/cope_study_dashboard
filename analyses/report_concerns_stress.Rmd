@@ -25,16 +25,11 @@ library(ggplot2)
 library(readxl)
 
 # load custom packages
-source("scripts/custom_functions.R")
-
-#heme_my_barchart =
-#my_color = "dark red"
-#settings_my_barchart = ggplot() + coord_flip()  + xlab("") + ylim(0, 100) 
-
+source("custom_functions.R")
 ```
 
 ```{r}
-load("clean_data/impact_disruption_cleaned.Rda")
+load("../clean_data/impact_disruption_cleaned.Rda")
 ```
 
 
