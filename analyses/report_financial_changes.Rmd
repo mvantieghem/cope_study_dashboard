@@ -30,7 +30,7 @@ library(readxl)
 source("custom_functions.R")
 
 # load cleaned data
-load("../clean_data/baseline_deidentified_df.Rdata")
+load("clean_data/baseline_deidentified_df.Rdata")
 ```
 
 
@@ -139,7 +139,7 @@ ggplot( aes(x = Job_changes, y = Percent)) +
   geom_bar(stat =  "identity", position = position_dodge(), fill = "dark blue") + 
    coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
     ylab ("Percent of women endorsing change") + 
-  labs(title = "Changes to employment & financial status due to the Covid-19 pandemic",
+  labs(#title = "Changes to employment & financial status due to the Covid-19 pandemic",
        caption = paste("Data aggregated from", partner_job_changes_table$N_total, "new and expecting mothers")) +
   custom_theme 
 
@@ -151,7 +151,7 @@ financial_impact_plot
 
 ```{r}
 # open the distress data...
-load("../clean_data/impact_disruption_cleaned.Rda")
+load("clean_data/impact_disruption_cleaned.Rda")
 
 # re-organize 
 job_distress_df <- pred_vars %>%
@@ -183,8 +183,7 @@ job_distress_plot <- job_distress_long %>%
   geom_bar(stat = "identity", fill = "navy",
             position = position_dodge()) +
   coord_flip() + 
-  ylim(0, 50) + xlab("") + custom_theme +
-  labs(title =  "Levels of distress relating to financial and employment impacts")
+  ylim(0, 50) + xlab("") + custom_theme 
 job_distress_plot
 ```
 

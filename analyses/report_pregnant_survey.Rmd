@@ -31,7 +31,7 @@ library(gridExtra)
 source("custom_functions.R")
 
 # load cleaned data
-load("../clean_data/baseline_deidentified_df.Rdata")
+load("clean_data/baseline_deidentified_df.Rdata")
 ```
 
 
@@ -119,7 +119,7 @@ prenatal_plot <- prenatal_changes_table_long %>%
       geom_bar(stat =  "identity", position = position_dodge(), fill = "dark blue") + 
       coord_flip()  +  xlab("") + ylim(0, 100)  +
       ylab("Percent") + 
-      labs( title = "Changes to Prenatal care during the Covid-19 outbreak", 
+      labs( #title = "Changes to Prenatal care during the Covid-19 outbreak", 
             caption = paste("Data aggregated from", prenatal_changes_table$N_total, "pregnant women"))  +
       xlab ("") + custom_theme 
 prenatal_plot
@@ -151,7 +151,7 @@ preg_concern_plot1 <- preg_concern_table %>%
   ggplot(aes(x = Endorsed, y = Percent)) +
   geom_bar(stat = "identity", fill = "dark blue") + coord_flip() + 
   custom_theme + xlab("") + ylim(0, 100) +
-  labs(title = "Possible changes to your medical care during your baby's birth?")
+  labs(title = "Possible changes to your medical care during your baby's birth")
 
 
 preg_concern_plot2 <- preg_concern_table %>%

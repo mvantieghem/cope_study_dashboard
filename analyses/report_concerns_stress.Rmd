@@ -29,7 +29,7 @@ source("custom_functions.R")
 ```
 
 ```{r}
-load("../clean_data/impact_disruption_cleaned.Rda")
+load("clean_data/impact_disruption_cleaned.Rda")
 ```
 
 

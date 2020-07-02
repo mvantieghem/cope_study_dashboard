@@ -30,7 +30,7 @@ library(readxl)
 source("custom_functions.R")
 
 # load cleaned data
-load("../clean_data/baseline_deidentified_df.Rdata")
+load("clean_data/baseline_deidentified_df.Rdata")
 ```
 
 ```{r}
@@ -84,7 +84,7 @@ ggplot( aes(x = Restrictions, y = Percent)) +
   geom_bar(stat =  "identity", position = position_dodge(), fill = "navy") + 
    coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
     ylab ("Percent") +  custom_theme + 
-  labs(title = "Behavior restrictions due to the Covid-19 pandemic", 
+  labs(#title = "Behavior restrictions due to the Covid-19 pandemic", 
     caption = paste("Data aggregated from", restrict_table$N_total, "new and expecting mothers")) 
 
 restrictions_plot 
@@ -113,7 +113,7 @@ miss_impact_plot <- miss_table %>%
   geom_bar(stat =  "identity", position = position_dodge(), fill = "navy") + 
    coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
     ylab ("Percent") +  custom_theme +
-  labs(title = "Which activities do women miss the most?", 
+  labs(#title = "Which activities do women miss the most?", 
        caption = paste("Data aggregated from", N_total, "new and expecting mothers"))
 miss_impact_plot 
 

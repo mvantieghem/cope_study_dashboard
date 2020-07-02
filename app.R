@@ -11,10 +11,11 @@ library(shinydashboard)
 
 # process data and generate tables and plots 
 source("custom_functions.R")
-source_rmd("../scripts/1a_data_cleaning_baselineQ.Rmd")
-source_rmd("../scripts/1b_data_cleaning_new_momQ.Rmd")
-source_rmd("analyses/report_new_mom.Rmd")
+#source_rmd("scripts/1a_data_cleaning_baselineQ.Rmd")
+#ource_rmd("scripts/1b_data_cleaning_new_momQ.Rmd")
 source_rmd("analyses/report_pregnant_survey.Rmd")
+source_rmd("analyses/report_birth_changes.Rmd")
+source_rmd("analyses/report_postnatal_changes.Rmd")
 source_rmd("analyses/report_concerns_stress.Rmd")
 source_rmd("analyses/report_financial_changes.Rmd")
 source_rmd("analyses/report_covid_restrictions.Rmd")
@@ -59,7 +60,10 @@ body <-  dashboardBody(
             h3("COVGEN Research Alliance"), 
             HTML("<p> In March of 2020, investigators across multiple institutions began sharing tools and approaches in support of 
                           global research harmonization. The Baby Bees Lab, along with our collaborators, created the <a href = 'https://www.covgen.org/'> COVGEN Research Alliance</a> , which aims to support these research activities by highlighting COVGEN research around 
-                          the world, and providing a platform for new collaborations to emerge.")),
+                          the world, and providing a platform for new collaborations to emerge."),
+            h3("About the App"),
+            HTML("<p>Author:  <a href = https://mvantieghem.github.io >Michelle VanTieghem</a>"),
+            HTML("<p>Code on <a href =https://github.com/mvantieghem/cope_study_dashboard >Github</a>")),
     
     # Second tab content
     tabItem(tabName = "Healthcare",
@@ -79,30 +83,37 @@ body <-  dashboardBody(
                                 width = 12),
                             infoBoxOutput(outputId = "postnatal_fact", 
                                           width = 12), fill = TRUE)
-                          # infoBoxOutput(outputId = "support_change_fact", 
-                           #              width = 12), fill = TRUE), 
                             ),
                 tabPanel('Prenatal Care', 
                          fluidRow(
-                           box(width = 12, status = "primary", solidHeader =  T,
+                           box(title = "How has Covid-19 impacted prenatal care?",
+                               width = 12, status = "primary", solidHeader =  T,
                              plotOutput (outputId = "prenatal_plot")),
-                           box(width = 12, height = 550, status = "primary", solidHeader = T, 
-                               h4("Are you concerned about..."),
+                           box(title = "What are pregnant women's top concerns?", 
+                               width = 12, height = 550, status = "primary", solidHeader = T, 
                                plotOutput (outputId = "preg_concern_plots")))), 
                 ##** ADD BOX FOR PROVIDER SUPPORT
                 tabPanel("Delivery Plans", 
                          fluidRow(
-                           box(width = 12, status = "primary", solidHeader =  T,
-                               plotOutput(outputId = 'birth_plot')))),
+                          # box(width = 12, status = "primary", solidHeader =  T,
+                           #    plotOutput(outputId = 'birth_plot')),
+                           box(title = "Birth during a pandemic: Changes to delivery plans over time", 
+                               width = 12,status = "primary", solidHeader =  T,
+                               checkboxGroupInput(inputId = 'change_choice', 
+                                                  label = '', 
+                                                  choices = list_birth_changes,
+                                                  selected = "Any change to birth plan"),
+                               plotOutput(outputId = 'birth_time_plot')))),
                 #*** ADD ROW WITH CHANGES OVER TIME BASED ON BIRTH***
                 #* ADD LEVEL OF DISTRESS DUE TO THESE CHANGES****
                 tabPanel("Postnatal Care", 
                          fluidRow( 
-                           box(width = 12, status = "primary",solidHeader =  T,
-                              plotOutput(outputId = 'postnatal_plot')),
-                          box(width = 12, status = "primary", solidHeader =  T,
+                           box(title = "How has Covid-19 impacted postnatal care?", 
+                               width = 12, status = "primary",solidHeader =  T,
+                               plotOutput(outputId = 'postnatal_plot')),
+                            box(title = "Has support from perinatal care providers changed due to Covid-19?", 
+                                width = 12, height = 400, status = "primary", solidHeader =  T,
                               plotOutput(outputId = 'support_provider_plot'))))
-                #** ADD BOX FOR CONCERNS ABOUT POSTNATAL CARE AND CHILD HEALTH
               )
             )
     ),
@@ -159,16 +170,19 @@ body <-  dashboardBody(
                 ),
                 tabPanel('Impact on Employment', 
                          fluidRow(
-                           box(width = 12, status = "primary", solidHeader =  T,
+                           box(title= "How has Covid-19 impacted women's employment and finances?",
+                               width = 12, solidHeader =  T, status = "primary",
                                 plotOutput (outputId = "financial_impact_plot")),
                        #  note that height is in pixels, and width is relative to actual width of page.
-                         box(width = 12, height = 300, solidHeader = T, status = "primary",
+                         box(title = "How worried are women about these changes?", 
+                             width = 12, height = 300, solidHeader = T, status = "primary",
                              plotOutput(outputId = "job_distress_plot")))),
                 tabPanel('Restrictions to Activities', 
                          fluidRow(
-                           box(width = 12, status = "primary", solidHeader =  T,
-                                plotOutput(outputId = 'restrictions_plot')),
-                           box(width = 12, solidHeader = T, status = "primary",
+                           #box(width = 12, status = "primary", solidHeader =  T,
+                            #    plotOutput(outputId = 'restrictions_plot')),
+                           box(title = "Which activities do women miss the most?",
+                               width = 12, solidHeader = T, status = "primary",
                                plotOutput(outputId = 'miss_impact_plot')))) 
              #   tabPanel('Disruptions', 
               #           fluidRow(
@@ -265,13 +279,13 @@ server_function <- function(input, output) {
   output$delivery_fact <- renderInfoBox({
     infoBox(title = "",
             subtitle = "of women who delivered after March 15 reported changes to their birth plan",
-            paste0("65%"), color = "navy",
+            paste0(birth_change_fact$Percent, "%"), color = "navy",
             icon = icon("hospital", class = "fas fa-hospital", lib = "font-awesome"))
   })
   output$support_partner_fact <- renderInfoBox({
     infoBox(title = "",
-            subtitle = "of new mothers reported that support partner was not permitted at delivery",
-            paste0("40%"), color = "navy",
+            subtitle = "of new mothers reported that their support partner was not permitted at delivery",
+            paste0(support_partner_fact$Percent, "%"), color = "navy",
             icon =  icon("heart", class = "fas fa-heart", lib = "font-awesome"))
   })
   output$postnatal_fact <- renderInfoBox({
@@ -289,7 +303,7 @@ server_function <- function(input, output) {
   output$percent_childcare_fact  <- renderInfoBox({
     infoBox(title = "", 
             paste0(percent_childcare, "%"), color = "navy",
-            subtitle = "Women reported childcare challenges due to Covid-19",
+            subtitle = "Of women reported childcare challenges due to Covid-19",
             icon = icon("child", class = "fas fa-child", lib = "font-awesome"))
   })
   output$percent_job_future_fact <- renderInfoBox({
@@ -301,7 +315,7 @@ server_function <- function(input, output) {
   })
   output$percent_miss_most_fact <- renderInfoBox({
     infoBox(title = "", 
-            subtitle = "Women reported that the activity they miss the most is in-person social contact", 
+            subtitle = "Of women reported that the activity they miss the most is in-person social contact", 
             paste0(miss_most$Percent, "%"), 
             icon = icon("user-friends", class = "fas fa-user-friends", lib = "font-awesome"), 
             color = "navy")
@@ -316,9 +330,23 @@ server_function <- function(input, output) {
                                 nrow = 3)
     print(plot_object)
    }, height = 450)
+  
   output$birth_plot <- renderPlot({birth_plot })
+
+  output$birth_time_plot <- renderPlot({
+    birth_time_table_long %>%
+    # only include months with more than 10 respondents.
+    filter(N_total > 10) %>%
+    filter(Birth_Changes %in% input$change_choice) %>%
+    ggplot(aes (x = child_birth_week, y = Percent)) + 
+    geom_line() + custom_theme + xlab("Delivery Date") + 
+    facet_wrap(~Birth_Changes, ncol = 2) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+      labs(caption = paste("Data aggregated from", birth_change_time_N, "women"))
+  })
+  
   output$postnatal_plot <- renderPlot({postnatal_plot })
-  output$support_provider_plot <- renderPlot({support_provider_plot}, height = 400)
+  output$support_provider_plot <- renderPlot({support_provider_plot}, height = 300)
   
   # load static plots for Impact panel 
    output$financial_impact_plot  <- renderPlot({financial_impact_plot })
