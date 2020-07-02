@@ -22,10 +22,7 @@ source_rmd("analyses/report_covid_restrictions.Rmd")
 
 # USER INTERFACE -----------------------------------------------------
 
-# Define UI for app  ----
-
-             #theme = shinytheme("united"), # theme chosen for colors & font 
-             #navbar page is a specific page layout we are using
+# Define UI for app  --------------------
 sidebar <- dashboardSidebar(
   sidebarMenu(
     menuItem("About", tabName = "About", icon = icon("th")),
@@ -36,7 +33,7 @@ sidebar <- dashboardSidebar(
     #menuItem("Coping", tabName= "Coping", icon = icon("th"))
   )
 )
-
+# Create body of dashboard ----------------
 body <-  dashboardBody(
   tabItems(
     # First tab content
@@ -117,6 +114,7 @@ body <-  dashboardBody(
               )
             )
     ),
+    # THIRD TAB Content ------------------------
     tabItem(tabName = "Covid-19",
             h3("Exposures to covid-19"),
             p("Pregnant women and new mothers shared information on their exposures to covid-19"),
@@ -150,6 +148,7 @@ body <-  dashboardBody(
               )
             )
     ),
+    ## ANOTHER TAB CONTENT --------------------
     tabItem(tabName = "Impact", 
             h3("Impact on daily life during the Covid-19 pandemic"),
             p("We asked women how the covid-19 pandemic has impacted different facets of their daily lives"),
@@ -184,17 +183,6 @@ body <-  dashboardBody(
                            box(title = "Which activities do women miss the most?",
                                width = 12, solidHeader = T, status = "primary",
                                plotOutput(outputId = 'miss_impact_plot')))) 
-             #   tabPanel('Disruptions', 
-              #           fluidRow(
-               #            box(width = 12, status = "primary", solidHeader =  T,
-               #                plotOutput(outputId = 'health_change_plot')))) 
-               # tabPanel('Other Changes', 
-                #         fluidRow(
-                 #          box(width = 12, status = "primary", solidHeader =  T,
-                  #             plotOutput(outputId = "housing_plot"))))
-                
-              )
-            )
     ),
     tabItem(tabName = "Stress",
             h3("Concerns and worries during Covid-19"),
@@ -261,15 +249,16 @@ body <-  dashboardBody(
   )
 )
 
-# put it all together.
+  # Put it all together -------
 ui <-  dashboardPage(
   dashboardHeader(title = "NYU COPE Study"), 
   sidebar, 
   body)
+
 # SERVER FUNCTION ---------------------------------------------------------
 
 server_function <- function(input, output) {
-  ## OUTPUTS FOR HEALTHCARE PANEL ----- ----- ----- ----- ----- ----- -----
+  ## OUTPUTS FOR INFOBOXES ----- 
   output$prenatal_fact <- renderInfoBox({
     infoBox(title = "",
             subtitle = "of pregnant women reported changes to prenatal care due to the Covid-19 pandemic",
@@ -321,6 +310,7 @@ server_function <- function(input, output) {
             color = "navy")
   })
   
+  # OUTPUT FOR PLOTTING ----------------
   # load static plots for Perinatal healthcare panel
   output$prenatal_plot <- renderPlot({ prenatal_plot})
   output$preg_concern_plots <- renderPlot({ 
@@ -335,7 +325,6 @@ server_function <- function(input, output) {
 
   output$birth_time_plot <- renderPlot({
     birth_time_table_long %>%
-    # only include months with more than 10 respondents.
     filter(N_total > 10) %>%
     filter(Birth_Changes %in% input$change_choice) %>%
     ggplot(aes (x = child_birth_week, y = Percent)) + 
@@ -344,7 +333,7 @@ server_function <- function(input, output) {
     theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
       labs(caption = paste("Data aggregated from", birth_change_time_N, "women"))
   })
-  
+
   output$postnatal_plot <- renderPlot({postnatal_plot })
   output$support_provider_plot <- renderPlot({support_provider_plot}, height = 300)
   
@@ -354,23 +343,6 @@ server_function <- function(input, output) {
    output$restrictions_plot <- renderPlot({restrictions_plot})
    output$miss_impact_plot <- renderPlot({miss_impact_plot})
 
-  
-  ## OUTPUTS FOR STRESS PANEL  ----- ----- ----- ----- ----- -----
-  output$concern_plot <- renderPlot({
-    
-    concern_plot <- concern_long %>%
-      filter(Concern %in% input$concern_choice) %>%
-      ggplot(aes(x = Rating, y = Percent)) + theme_bw() + 
-      geom_bar(stat = "identity",aes(fill = Concern), 
-               alpha = 0.5,  color = "black", position = position_dodge()) + 
-      ggtitle("Self-reported Level of Concern") + #my_colors_fill +
-      ylim(0, 100) + xlab("") + theme(axis.text = element_text(size = 12)) 
-    
-    concern_plot
-  })
-  
-  
-   
 }
 
 
