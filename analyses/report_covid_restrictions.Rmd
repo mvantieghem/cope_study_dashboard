@@ -53,6 +53,7 @@ baseline_clean2 <- baseline_clean2 %>%
 ```{r}
 
 restrict_table <- baseline_clean2 %>%
+  group_by(status) %>%
   summarize(N_total = n(),
             'In-person contact with member of household' = sum(covid_behavior_restrictions___1),
             'In-person contact with family not in household' = sum(covid_behavior_restrictions___2),
@@ -69,10 +70,9 @@ restrict_table <- baseline_clean2 %>%
             'Exercise classes or recreational sports' = sum(covid_behavior_restrictions___11))
 
 restrict_table_long <- restrict_table %>%
-  gather(key = "Restrictions", value = "N_endorsed", -N_total) %>%
-  select(Restrictions, N_endorsed, N_total) %>%
+  gather(key = "Restrictions", value = "N_endorsed", -N_total, -status) %>%
   mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
-  select(Restrictions,  N_endorsed, Percent)
+  select(status, Restrictions,  N_endorsed, Percent)
 restrict_table_long
 ```
 
@@ -80,10 +80,10 @@ restrict_table_long
 ```{r,  echo = F}
 restrictions_plot <- restrict_table_long %>%
     mutate(Restrictions = reorder(Restrictions, Percent)) %>%
-ggplot( aes(x = Restrictions, y = Percent)) + 
-  geom_bar(stat =  "identity", position = position_dodge(), fill = "navy") + 
+ggplot( aes(x = Restrictions, y = Percent, fill = status)) + 
+  geom_bar(stat =  "identity", position = position_dodge()) + 
    coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
-    ylab ("Percent") +  custom_theme + 
+    ylab ("Percent") +  custom_theme + my_colors_fill + 
   labs(#title = "Behavior restrictions due to the Covid-19 pandemic", 
     caption = paste("Data aggregated from", restrict_table$N_total, "new and expecting mothers")) 
 
@@ -96,10 +96,11 @@ restrictions_plot
 N_total <- nrow(baseline_clean2 %>% filter(!is.na(activities_miss_most)))
 miss_table <- baseline_clean2 %>%
   filter(!is.na(activities_miss_most)) %>%
-  group_by(activities_miss_most) %>%
+  group_by(activities_miss_most, status) %>%
   summarize(N_endorsed = n()) %>%
   mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
-  select(activities_miss_most, N_endorsed, Percent)
+  select(status, activities_miss_most, N_endorsed, Percent) %>%
+  ungroup()
 
 miss_table
 
@@ -109,10 +110,10 @@ miss_table
 ```{r,  echo = F}
 miss_impact_plot <- miss_table %>%
     mutate(activities_miss_most = reorder(activities_miss_most, Percent)) %>%
-  ggplot( aes(x = activities_miss_most, y = Percent)) + 
-  geom_bar(stat =  "identity", position = position_dodge(), fill = "navy") + 
-   coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
-    ylab ("Percent") +  custom_theme +
+  ggplot( aes(x = activities_miss_most, y = Percent, fill = status)) + 
+  geom_bar(stat =  "identity", position = position_dodge()) + 
+   coord_flip()  + theme_bw() + xlab("") + 
+    ylab ("Percent") +  custom_theme + my_colors_fill + 
   labs(#title = "Which activities do women miss the most?", 
        caption = paste("Data aggregated from", N_total, "new and expecting mothers"))
 miss_impact_plot 

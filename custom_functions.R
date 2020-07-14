@@ -2,7 +2,7 @@
 
 ## GGPLOT AESTHETICS 
 
-color_list <- c("red", "blue", "pink", "dark green", "orange")
+color_list <- c("navy", "light blue", "pink", "dark green", "purple")
 my_colors_fill = scale_fill_manual(values = color_list)
 my_colors_color = scale_color_manual(values = color_list)
 
@@ -17,6 +17,7 @@ custom_theme <- theme_bw()  +
   plot.title = element_text(face="bold"),
   # add nicer header for facets
   strip.text = element_text(size = 16))
+
 
 ## my function to generate simple descriptives from numeric variables
 numeric_descriptives <- function(variable_list, dataframe){

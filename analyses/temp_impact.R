@@ -2,7 +2,7 @@
 ## related measures of distress 
 
 # open the distress data...
-load("../../clean_data/impact_disruption_cleaned.Rda")
+#load("../../clean_data/impact_disruption_cleaned.Rda")
 
 # re-organize 
 job_distress_df <- pred_vars %>%

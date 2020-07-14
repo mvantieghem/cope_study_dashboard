@@ -22,6 +22,7 @@ knitr::opts_chunk$set( message = F, warning = F)
 
 
 # load packages
+library(plotly)
 library(tidyverse)
 library(ggplot2)
 library(readxl)
@@ -63,6 +64,7 @@ baseline_clean2 <- baseline_clean2 %>%
 self_job_changes_table <- baseline_clean2 %>%
   # only include people who completed questionnaire...
   filter(covid_19_survey_all_complete == 2) %>%
+  group_by(status) %>%
   summarize(N_total = n(), 
             'Any change to job' = sum(any_self_job_change, na.rm = T),
             'Move to remote work' = sum(current_job_move_remote___1 == 1, na.rm  = T), 
@@ -81,66 +83,24 @@ self_job_changes_table <- baseline_clean2 %>%
             'Loss of health insurance' = sum(current_job_no_insurance___1 == 1, na.rm = T))
 
 self_job_changes_table_long <- self_job_changes_table %>%
-  gather(key = "Job_changes", value = "N_endorsed", -N_total) %>%
-  select(Job_changes, N_endorsed, N_total) %>%
-  mutate(Percent = round((N_endorsed/N_total)*100, 2), 
-         Family_member = "Self") %>%
-  select(Family_member, Job_changes,  N_endorsed, Percent)
+  gather(key = "Job_changes", value = "N_endorsed", -N_total, -status) %>%
+  select(Job_changes, status, N_endorsed, N_total) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
+  select(status, Job_changes,  N_endorsed, Percent)
 ```
 
-REPEAT FOR PARTNER
-```{r}
-# 
-partner_job_changes_table <- baseline_clean2 %>%
-  # only include people who completed questionnaire...
-  filter(covid_19_survey_all_complete == 2) %>%
-  summarize(N_total = n(), 
-            'Any change to job' = sum(any_partner_job_change, na.rm = T),
-            'Move to remote work' = sum(current_job_move_remote___2 == 1, na.rm  = T), 
-            'Child care challenges' = sum(current_job_childcare___2 == 1, na.rm = T),
-            'Reduced hours' = sum(current_job_decrease_hours___2 == 1, na.rm = T),
-            'Decreased pay' = sum(current_job_decrease_pay___2 == 1, na.rm = T),
-            'Loss of Job' = sum( current_job_loss___2 == 1, na.rm = T), 
-            'Lower job security' =  sum(current_job_low_security___2 == 1, na.rm = T), 
-            'Reduced ability to afford childcare' = sum(current_afford_childcare___2 == 1, na.rm = T), 
-            'Reduced ability to afford housing' = sum(current_afford_rent___2 == 1, na.rm = T),
-            'Decrease in retirement or savings' = sum(current_reduced_savings___2 == 1, na.rm = T),
-            'Having to fire employees' = sum(current_job_fire_employees___2 == 1), 
-            'Increased hours' = sum(current_job_increase_hours___2 == 1, na.rm = T), 
-            'Increased reporting at job' = sum(current_job_increase_reporting___2 == 1, na.rm = T), 
-            'Increased responsibilities' = sum(current_job_more_responsbility___2 == 1, na.rm = T), 
-            'Loss of health insurance' = sum(current_job_no_insurance___2 == 1, na.rm = T))
-           
-
-partner_job_changes_table_long <- partner_job_changes_table %>%
-  gather(key = "Job_changes", value = "N_endorsed", -N_total) %>%
-  select(Job_changes, N_endorsed, N_total) %>%
-  mutate(Percent = round((N_endorsed/N_total)*100, 2), 
-         Family_member = "Partner") %>%
-  select(Family_member, Job_changes,  N_endorsed, Percent)
-
-combo_job_changes_table_long <- rbind(self_job_changes_table_long, partner_job_changes_table_long) %>%
-  mutate(Type = ifelse(Job_changes == "Any change to job" | Job_changes == "Move to remote work" |
-                         Job_changes == "Reduced hours" | Job_changes == "Loss of Job" |
-                         Job_changes == "Lower job security" | Job_changes == "Increased hours" | 
-                         Job_changes == "Having to fire employees" | Job_changes == "Disruptions to due to child care challenges" |
-                       Job_changes == "Increased reporting at job" | Job_changes == "Increased responsibilities",
-                       "Impact on Employment", "Financial Impact"))
-#save(self_job_changes_table_long, file = "tables/self_job_changes_table_long.Rdata")
-```
 
 
 ```{r,  echo = F}
-financial_impact_plot <- combo_job_changes_table_long %>%
-  filter(Family_member == "Self") %>%
-    mutate(Job_changes = reorder(Job_changes, Percent)) %>%
-
-ggplot( aes(x = Job_changes, y = Percent)) + 
-  geom_bar(stat =  "identity", position = position_dodge(), fill = "dark blue") + 
+financial_impact_plot <- self_job_changes_table_long %>%
+      mutate(Job_changes = reorder(Job_changes, Percent)) %>%
+ # filter(status == input$status_choice) %>%
+    ggplot( aes(x = Job_changes, y = Percent, fill = status)) + 
+    geom_bar(stat =  "identity", position = position_dodge()) + 
    coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
-    ylab ("Percent of women endorsing change") + 
+    ylab ("Percent of women endorsing change") + my_colors_fill + 
   labs(#title = "Changes to employment & financial status due to the Covid-19 pandemic",
-       caption = paste("Data aggregated from", partner_job_changes_table$N_total, "new and expecting mothers")) +
+   caption = paste("Data aggregated from", partner_job_changes_table$N_total, "new and expecting mothers")) +
   custom_theme 
 
 financial_impact_plot 
@@ -155,34 +115,30 @@ load("clean_data/impact_disruption_cleaned.Rda")
 
 # re-organize 
 job_distress_df <- pred_vars %>%
-  select(contains("job_distress"), record_id) %>%
+  select(status, contains("job_distress"), record_id) %>%
   mutate_if(is.numeric, funs (convert_7pt_likert(.))) %>%
   drop_na()
 
 # combine datasets and calculate% endorsed for each item.
 job_distress_long <- job_distress_df %>%
-  gather(key = "Factor", value = "Rating", -record_id) %>%
+  gather(key = "Factor", value = "Rating", -record_id, -status) %>%
   mutate(Factor = ifelse(Factor ==  "current_job_distress", "Current Impact",
                          ifelse(Factor == "future_job_distress", "Future Impact",  NA))) %>% 
   # remove reduced access to social interactions, does into different category!
   filter(!is.na(Factor)) %>%
-  group_by(Factor, Rating) %>%
+  group_by(status, Factor, Rating) %>%
   summarize(n = n(), 
             Percent = round(n()/nrow(distress_df)*100)) %>%
   # make sure the factors are in logical order for plots.
   mutate(Rating = fct_relevel(Rating, "No distress", "Mild distress", "Moderate distress", "High distress"))
 
-#distress_long
-color_list <- c("navy", "light blue")
-my_colors_fill = scale_fill_manual(values = color_list)
-
 # for now, plot a single one as test case.
 job_distress_plot <- job_distress_long %>%
   filter(Factor == "Current Impact") %>%
-  ggplot(aes(x = Rating, y = Percent)) + 
-  geom_bar(stat = "identity", fill = "navy",
+  ggplot(aes(x = Rating, y = Percent, fill = status)) + 
+  geom_bar(stat = "identity",
             position = position_dodge()) +
-  coord_flip() + 
+  coord_flip() + my_colors_fill +
   ylim(0, 50) + xlab("") + custom_theme 
 job_distress_plot
 ```

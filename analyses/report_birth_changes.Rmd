@@ -1,0 +1,186 @@
+---
+title: 'COPE data for NYU Langone cohort: Delivery / Birth changes'
+author: "Michelle.VanTieghem"
+date: "June 2, 2020"
+output:
+  html_document:
+    code_folding: show
+    df_print: paged
+    number_sections: no
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  word_document:
+    toc: yes
+---
+
+
+# README 
+Includes all participants who completed New Mom questionnaire at either baseline or Week 2 follow-up. \ Questions were optional so not all Qs have same  # of participants. \
+Data collected between 04-04-2020 and 06-02-2020. \
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set(message = F, warning = F)
+
+# load packages
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+library(lubridate)
+
+# load custom packages
+source("custom_functions.R")
+
+
+load("clean_data/new_mom_df_clean.Rdata")
+(N_completed_maternal_Q <- nrow(mom_data_all))
+
+```
+
+
+# Changes to Birth plan - before and after covid
+ 0 = Delivery date before March 15, 2020 (before covid) \
+ 1 = Delivery date on or after March 15, 2020 (after covid) \
+(question is check all that apply)
+```{r, echo =F, include = F}
+
+# get N for how many people answered this Q, to calculate %
+N_total <- sum(!is.na(mom_data_all$any_birth_change))
+
+# make table of changes
+birth_changes_table <- mom_data_all %>%
+  filter(covid19_survey_for_new_mothers_complete ==2) %>%
+  # only include people who answered this Q 
+  filter(!is.na(any_birth_change)) %>%
+  # group by birth before or after March 15, 2020
+  group_by(Delivery_date) %>%
+  summarize(N_total = n(), 
+            'Any change to birth plan' = sum(any_birth_change, na.rm = T),
+            'Reduced access to preferred medications' = sum(birth_plan_changes___1 == 1, na.rm = T),
+            'Changes to birth location' = sum(birth_plan_changes___2 == 1, na.rm = T),
+            'Changes to birth schedule' = sum(birth_plan_changes___3 == 1 | 
+                                                birth_plan_changes___4 == 1, na.rm = T),
+            "Health care provider was not available" = sum(birth_plan_changes___5 == 1, na.rm = T),
+            "Support person not permitted at delivery"= sum(birth_plan_changes___6 == 1, na.rm = T),
+            'Separated from baby after delivery' = sum(birth_plan_changes___7 == 1 |
+                                                         birth_plan_changes___8 == 1, na.rm = T),
+            'Other change to birth plan' = sum(birth_plan_changes___10 == 1, na.rm = T),
+            'No changes' = sum(birth_plan_changes___9 == 1, na.rm = T))
+
+birth_changes_table_long <- birth_changes_table %>%
+  gather(key = "Birth_Changes", value = "N_endorsed", -Delivery_date, -N_total) %>%
+  select(Birth_Changes,  Delivery_date, N_endorsed, N_total) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
+  select(Birth_Changes, Delivery_date, N_endorsed, Percent)
+#save(birth_changes_table_long, file = "tables/birth_changes_table_long.Rdata")
+
+birth_changes_table$N_total
+```
+
+## summary of facts for infobox
+```{r, echo = F}
+birth_change_fact <- birth_changes_table_long %>%
+  filter(Birth_Changes == "Any change to birth plan" & Delivery_date == "After March 15, 2020") %>%
+  mutate(Percent= round(Percent)) 
+
+birth_change_fact$Percent
+
+support_partner_fact <- birth_changes_table_long %>% 
+  filter(Birth_Changes == "Support person not permitted at delivery" & 
+           Delivery_date == "After March 15, 2020") %>%
+  mutate(Percent = round(Percent))
+
+support_partner_fact$Percent
+```
+
+
+## Types of changes to birth plan due to Covid-19
+```{r, echo = F}
+(birth_changes_table_long %>%
+   filter(Birth_Changes != "Any change to birth plan" &
+            Birth_Changes != "No changes" & Delivery_date == "After March 15, 2020")) %>%
+  select(Birth_Changes, N_endorsed, Percent)
+```
+
+```{r,  echo = F}
+birth_plot <- birth_changes_table_long %>%
+      filter(Delivery_date == "After March 15, 2020" & 
+               Birth_Changes != "No changes") %>%
+      mutate(Birth_Changes = reorder(Birth_Changes, Percent)) %>%
+      ggplot(aes(x = Birth_Changes, y = Percent)) +
+      geom_bar(stat =  "identity", position = position_dodge(), fill = "navy") + 
+      coord_flip()  +  ylim(0, 100)+
+           ylab("Percent") +xlab ("") + custom_theme +
+      labs( #title =Changes to Birth & Delivery during the Covid-19 outbreak", 
+            caption = paste("Data aggregated from", birth_changes_table$N_total[birth_changes_table$Delivery_date =="After March 15, 2020"], "women who delivered after March 15th, 2020"))
+        
+    birth_plot
+```
+
+## Changes over time, based on delivery date
+```{r}
+week_interval <- function(date) {
+  floor_date(date, "week")
+}
+month_interval <- function(date) {
+  floor_date(date, "month")
+}
+
+
+birth_time_df <- mom_data_all %>%
+  mutate(child_birth_date = ymd(child_birth_date),
+         child_birth_month = month_interval(child_birth_date), 
+         child_birth_week = week_interval(child_birth_date)) %>%
+    # only include people who answered this Q 
+  filter(covid19_survey_for_new_mothers_complete ==2) %>%
+   # exclude people who did not answer questions
+  filter(!is.na(any_birth_change) & 
+           !is.na(child_birth_month)) 
+
+birth_time_table <- birth_time_df %>%
+  group_by(child_birth_week) %>%
+    filter(child_birth_week >= ymd("2020-01-01")) %>%
+  summarize(N_total = n(), 
+            'Any change to birth plan' = sum(any_birth_change, na.rm = T),
+            'Reduced access to preferred medications' = sum(birth_plan_changes___1 == 1, na.rm = T),
+            'Changes to birth location' = sum(birth_plan_changes___2 == 1, na.rm = T),
+            'Changes to birth schedule' = sum(birth_plan_changes___3 == 1 | 
+                                                birth_plan_changes___4 == 1, na.rm = T),
+            "Health care provider was not available" = sum(birth_plan_changes___5 == 1, na.rm = T),
+            "Support person not permitted at delivery"= sum(birth_plan_changes___6 == 1, na.rm = T),
+            'Separated from baby after delivery' = sum(birth_plan_changes___7 == 1 |
+                                                         birth_plan_changes___8 == 1, na.rm = T),
+            'Other change to birth plan' = sum(birth_plan_changes___10 == 1, na.rm = T),
+            'No changes' = sum(birth_plan_changes___9 == 1, na.rm = T))
+
+birth_time_table_long <- birth_time_table %>%
+  gather(key = "Birth_Changes", value = "N_endorsed", -child_birth_week, -N_total) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
+  select(Birth_Changes, child_birth_week, N_endorsed, N_total, Percent) %>%
+  filter(Birth_Changes != "No changes" & Birth_Changes != "Other change to birth plan" 
+         & Birth_Changes != "Reduced access to preferred medications")
+
+
+```
+
+
+```{r}
+## stuff needed
+birth_change_time_N <- sum(birth_time_table_long %>%
+  filter(Birth_Changes == "Any change to birth plan") %>% 
+  select(N_total))
+list_birth_changes <- unique(birth_time_table_long$Birth_Changes)
+
+# plot
+birth_time_table_long %>%
+  # only include months with more than 10 respondents.
+  filter(N_total > 10) %>%
+#  filter(Birth_Changes == input$change_choice) %>%
+  ggplot(aes (x = child_birth_week, y = Percent)) + 
+  geom_line() + custom_theme + xlab("") + facet_wrap(~Birth_Changes, 
+                                                     ncol = 2) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+  labs(caption = paste("Data aggregated from", birth_change_time_N, "women, with delivery dates binned in 2-week intevals."))
+
+```
