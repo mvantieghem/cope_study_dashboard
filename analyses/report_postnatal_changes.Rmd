@@ -31,8 +31,7 @@ library(readxl)
 # load custom packages
 source("custom_functions.R")
 
-
-load("clean_data/new_mom_df_clean.Rdata")
+mom_data_all <- read.csv(paste0(data_dir, "cleaned_new_mom_survey_2020-07-14.csv"))
 (N_completed_maternal_Q <- nrow(mom_data_all))
 
 ```
@@ -175,4 +174,28 @@ postnatal_change <- postnatal_changes_table_long %>%
   select(Percent)
 
 postnatal_change$Percent
+```
+
+
+## how did mom's concerns change over time
+need to make a variable based on month they filled out this Q.
+```{r, eval = F, include = f}
+
+        #   mom mat care concern
+         #  child health concern
+
+mom_concerns_table_long <- mom_concerns_table %>%
+  gather(key= "Concern", value = "mean_rating", -N_total, -child_birth_week)
+
+mom_concerns_table_long %>%
+  ggplot(aes (x = child_birth_week, y = mean_rating, 
+              color= Concern, fill = Concern )) + 
+  #geom_jitter(alpha = 0.5, height = 0.2, width = 0.2) +
+  geom_smooth() + custom_theme + xlab("") +
+  ylab("Mean Distress Rating") + ylim(0, 6) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+  labs(caption = paste("Data aggregated from", 
+                       birth_change_time_N, 
+                       "women, with delivery dates binned in 2-week intevals."))
+
 ```

@@ -31,11 +31,8 @@ library(lubridate)
 
 # load custom packages
 source("custom_functions.R")
-
-
-load("clean_data/new_mom_df_clean.Rdata")
+mom_data_all <- read.csv(paste0(data_dir, "cleaned_new_mom_survey_2020-07-14.csv"))
 (N_completed_maternal_Q <- nrow(mom_data_all))
-
 ```
 
 
@@ -75,7 +72,7 @@ birth_changes_table_long <- birth_changes_table %>%
   select(Birth_Changes, Delivery_date, N_endorsed, Percent)
 #save(birth_changes_table_long, file = "tables/birth_changes_table_long.Rdata")
 
-birth_changes_table$N_total
+
 ```
 
 ## summary of facts for infobox
@@ -115,7 +112,7 @@ birth_plot <- birth_changes_table_long %>%
       labs( #title =Changes to Birth & Delivery during the Covid-19 outbreak", 
             caption = paste("Data aggregated from", birth_changes_table$N_total[birth_changes_table$Delivery_date =="After March 15, 2020"], "women who delivered after March 15th, 2020"))
         
-    birth_plot
+birth_plot
 ```
 
 ## Changes over time, based on delivery date
@@ -160,8 +157,6 @@ birth_time_table_long <- birth_time_table %>%
   select(Birth_Changes, child_birth_week, N_endorsed, N_total, Percent) %>%
   filter(Birth_Changes != "No changes" & Birth_Changes != "Other change to birth plan" 
          & Birth_Changes != "Reduced access to preferred medications")
-
-
 ```
 
 
@@ -182,5 +177,33 @@ birth_time_table_long %>%
                                                      ncol = 2) +
   theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
   labs(caption = paste("Data aggregated from", birth_change_time_N, "women, with delivery dates binned in 2-week intevals."))
+
+```
+
+
+
+## comparing support partner changes
+
+ birth change distress for support partner not permitted..
+```{r}
+
+mom_data_all <- mom_data_all %>%
+  mutate(support_partner_permitted = as.factor(ifelse(birth_plan_changes___6 == 1, "No","Yes")))
+
+lm_mod <- lm(birth_change_distress ~ support_partner_permitted, 
+             data = mom_data_all)
+summary(lm_mod)
+
+data.frame(effect("support_partner_permitted", lm_mod)) %>%
+  ggplot(aes (x = support_partner_permitted,
+              y = fit)) + 
+  geom_jitter(data = mom_data_all, 
+              aes(x = support_partner_permitted, y = birth_change_distress), 
+              alpha = 0.2, height = 0.2, width = 0.05, color = "gray") +
+  geom_point(stat = "identity") + ylim(0,6) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width= 0.2) +
+  custom_theme + my_colors_color + my_colors_fill +
+  xlab("Support partner permitted at delivery?") + 
+  ylab ("Distress about birth experiences")
 
 ```

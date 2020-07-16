@@ -28,35 +28,14 @@ library(ggplot2)
 library(readxl)
 
 # load custom packages
-source("custom_functions.R")
+source("../custom_functions.R")
 
 # load cleaned data
-load("clean_data/baseline_deidentified_df.Rdata")
-```
-
-
-## add job change variables
-```{r}
-
-self_job_changes <- baseline_clean2 %>%
-  select(contains("current_job") & contains("___1"))
-partner_job_changes <- baseline_clean2 %>%
-  select(contains("current_job") & contains("___2"))
-
-baseline_clean2 <- baseline_clean2 %>%
-   # track prenatal care change
-    mutate(num_self_job_changes =rowSums(self_job_changes, na.rm = T),
-           num_partner_job_changes = rowSums(partner_job_changes, na.rm = T),
-           no_resp_self_job_change = ifelse(num_self_job_changes == 0, 1, 0),
-            no_resp_partner_job_change = ifelse(num_partner_job_changes == 0, 1, 0),
-          any_self_job_change = ifelse(num_self_job_changes >=1, 1, 0),
-          any_partner_job_change = ifelse(num_partner_job_changes >= 1, 1, 0),
-     # make prettier version for plotting  
-     Self_job_change_factor = as.factor(ifelse(any_self_job_change == 0, "No changes", "Job changes")), 
-     Partner_job_change_factor = as.factor(ifelse(any_partner_job_change == 0, "No changes", "Job changes"))) %>%
-    filter(covid_19_survey_all_complete == 2) 
+baseline_clean2 <- read.csv(paste0(data_dir,"complete_baseline_data_2020-07-14.csv"))
 
 ```
+
+
 
 ### job changes
 
@@ -100,7 +79,7 @@ financial_impact_plot <- self_job_changes_table_long %>%
    coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
     ylab ("Percent of women endorsing change") + my_colors_fill + 
   labs(#title = "Changes to employment & financial status due to the Covid-19 pandemic",
-   caption = paste("Data aggregated from", partner_job_changes_table$N_total, "new and expecting mothers")) +
+   caption = paste("Data aggregated from", self_job_changes_table$N_total, "new and expecting mothers")) +
   custom_theme 
 
 financial_impact_plot 
@@ -111,7 +90,7 @@ financial_impact_plot
 
 ```{r}
 # open the distress data...
-load("clean_data/impact_disruption_cleaned.Rda")
+load("../clean_data/impact_disruption_cleaned.Rda")
 
 # re-organize 
 job_distress_df <- pred_vars %>%
@@ -126,27 +105,26 @@ job_distress_long <- job_distress_df %>%
                          ifelse(Factor == "future_job_distress", "Future Impact",  NA))) %>% 
   # remove reduced access to social interactions, does into different category!
   filter(!is.na(Factor)) %>%
-  group_by(status, Factor, Rating) %>%
+  group_by(Factor, Rating) %>%
   summarize(n = n(), 
-            Percent = round(n()/nrow(distress_df)*100)) %>%
+            Percent = round(n()/nrow(job_distress_df)*100)) %>%
   # make sure the factors are in logical order for plots.
   mutate(Rating = fct_relevel(Rating, "No distress", "Mild distress", "Moderate distress", "High distress"))
 
 # for now, plot a single one as test case.
 job_distress_plot <- job_distress_long %>%
   filter(Factor == "Current Impact") %>%
-  ggplot(aes(x = Rating, y = Percent, fill = status)) + 
-  geom_bar(stat = "identity",
-            position = position_dodge()) +
-  coord_flip() + my_colors_fill +
-  ylim(0, 50) + xlab("") + custom_theme 
+  ggplot(aes(x = Rating, y = Percent, fill = Rating)) + 
+  geom_bar(stat = "identity") +
+  coord_flip() + #my_colors_fill +
+   xlab("") + custom_theme 
 job_distress_plot
 ```
 
 
 ## summary statsfor info boxes
 ```{r}
-percent_childcare <- round(combo_job_changes_table_long$Percent[combo_job_changes_table_long$Job_changes == "Child care challenges" & combo_job_changes_table_long$Family_member == "Self"])
+percent_childcare <- round(self_job_changes_table_long$Percent[self_job_changes_table_long$Job_changes == "Child care challenges" &self_job_changes_table_long$Family_member == "Self"])
 
 fact_job_future <- job_distress_long %>%
   filter(Rating == "High distress" & Factor == "Future Impact") %>%

@@ -27,27 +27,12 @@ library(ggplot2)
 library(readxl)
 
 # load custom packages
-source("custom_functions.R")
+source("../custom_functions.R")
 
-# load cleaned data
-load("clean_data/baseline_deidentified_df.Rdata")
+baseline_clean2 <- read.csv( file = paste0(data_dir, "complete_baseline_data_2020-07-14.csv"))
 ```
 
-```{r}
-behavior_restrict <- baseline_clean2 %>%
-  select(contains("behavior_restrictions"))
 
-baseline_clean2 <- baseline_clean2 %>%
-        mutate(num_restrictions = rowSums(behavior_restrict, na.rm = T), 
-               any_restrictions = ifelse(num_restrictions > 1,1, 0),
-               no_resp_restrictions = ifelse(num_restrictions == 0, 1, 0), 
-               activities_miss_most = ifelse(covid_behavior_miss == 1, 
-            	"In-person contact with family or friends",
-            	ifelse(covid_behavior_miss == 2, "In-person contact with colleagues at work",
-            	       ifelse(covid_behavior_miss == 3, "In-person contact with other parents", ifelse(covid_behavior_miss == 4, "Breaks from childcare duties",                                ifelse(covid_behavior_miss == 5, "Cancellation of family or personal travel",                                        ifelse(covid_behavior_miss == 6, "Family activities in public spaces",                                        ifelse(covid_behavior_miss == 7, "Outdoor recreational activities",                                         ifelse(covid_behavior_miss == 8, "Going to restaurants or stores", ifelse(covid_behavior_miss == 9, "Exercise classes or recreational sports",                            ifelse(covid_behavior_miss == 10, "In-person events in the community",                            ifelse(covid_behavior_miss == 11, "In person religious events",                                          ifelse(covid_behavior_miss == 12, "Other", NA)))) ))))))))) %>%
-    filter(covid_19_survey_all_complete == 2) 
-
-```
 
 ## make table for restrictions
 ```{r}
@@ -128,4 +113,12 @@ miss_most <- miss_table %>%
   mutate(Percent = round(Percent)) 
 
 miss_most$Percent
+```
+
+## social disruptions ratings 
+```{r}
+
+baseline_clean2 %>%
+  select(social_disruptions_rating)
+
 ```

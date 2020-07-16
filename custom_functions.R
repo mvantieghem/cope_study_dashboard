@@ -1,5 +1,8 @@
 # Functions for COPE project - cleaning and analysis 
 
+## directory set 
+data_dir <- "../clean_data/"
+
 ## GGPLOT AESTHETICS 
 
 color_list <- c("navy", "light blue", "pink", "dark green", "purple")
