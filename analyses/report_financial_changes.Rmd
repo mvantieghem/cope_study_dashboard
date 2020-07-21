@@ -27,11 +27,12 @@ library(tidyverse)
 library(ggplot2)
 library(readxl)
 
+#data_dir <- "../"
 # load custom packages
-source("../custom_functions.R")
+source(paste0(data_dir, "custom_functions.R"))
 
 # load cleaned data
-baseline_clean2 <- read.csv(paste0(data_dir,"complete_baseline_data_2020-07-14.csv"))
+baseline_df <- read.csv(paste0(data_dir,"clean_data/cleaned_baseline_survey_2020-07-14.csv"))
 
 ```
 
@@ -40,19 +41,16 @@ baseline_clean2 <- read.csv(paste0(data_dir,"complete_baseline_data_2020-07-14.c
 ### job changes
 
 ```{r}
-self_job_changes_table <- baseline_clean2 %>%
-  # only include people who completed questionnaire...
-  filter(covid_19_survey_all_complete == 2) %>%
-  group_by(status) %>%
+self_job_changes_table <- baseline_df %>%
   summarize(N_total = n(), 
             'Any change to job' = sum(any_self_job_change, na.rm = T),
             'Move to remote work' = sum(current_job_move_remote___1 == 1, na.rm  = T), 
-            'Child care challenges' = sum(current_job_childcare___1 == 1, na.rm = T),
+           
             'Reduced hours' = sum(current_job_decrease_hours___1 == 1, na.rm = T),
             'Decreased pay' = sum(current_job_decrease_pay___1 == 1, na.rm = T),
             'Loss of Job' = sum( current_job_loss___1 == 1, na.rm = T), 
             'Lower job security' =  sum(current_job_low_security___1 == 1, na.rm = T), 
-            'Reduced ability to afford childcare' = sum(current_afford_childcare___1 == 1, na.rm = T), 
+            
             'Reduced ability to afford housing' = sum(current_afford_rent___1 == 1, na.rm = T),
             'Decrease in retirement or savings' = sum(current_reduced_savings___1 == 1, na.rm = T),
             'Having to fire employees' = sum(current_job_fire_employees___1 == 1), 
@@ -62,38 +60,69 @@ self_job_changes_table <- baseline_clean2 %>%
             'Loss of health insurance' = sum(current_job_no_insurance___1 == 1, na.rm = T))
 
 self_job_changes_table_long <- self_job_changes_table %>%
-  gather(key = "Job_changes", value = "N_endorsed", -N_total, -status) %>%
-  select(Job_changes, status, N_endorsed, N_total) %>%
+  gather(key = "Job_changes", value = "N_endorsed", -N_total) %>%
+  select(Job_changes, N_endorsed, N_total) %>%
   mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
-  select(status, Job_changes,  N_endorsed, Percent)
-```
+  select( Job_changes,  N_endorsed, Percent)
 
+```
 
 
 ```{r,  echo = F}
 financial_impact_plot <- self_job_changes_table_long %>%
       mutate(Job_changes = reorder(Job_changes, Percent)) %>%
  # filter(status == input$status_choice) %>%
-    ggplot( aes(x = Job_changes, y = Percent, fill = status)) + 
-    geom_bar(stat =  "identity", position = position_dodge()) + 
+    ggplot( aes(x = Job_changes, y = Percent)) + 
+    geom_bar(stat =  "identity", position = position_dodge(),
+             fill = "navy") + 
    coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
-    ylab ("Percent of women endorsing change") + my_colors_fill + 
+    ylab ("Percent") + 
   labs(#title = "Changes to employment & financial status due to the Covid-19 pandemic",
    caption = paste("Data aggregated from", self_job_changes_table$N_total, "new and expecting mothers")) +
   custom_theme 
 
 financial_impact_plot 
+#ggsave(financial_impact_plot, file = "../plots/financial_impact_plot.png")
+```
+
+## childcare for women with kids already
+```{r}
+
+# how many women in the study have older children (aside from preg / newborn)
+baseline_df <- baseline_df %>%
+  mutate(older_children = ifelse(status == "New Mom" & household_children >1, 1, 
+                                 ifelse(status == "Pregnant" & household_children >= 1, 1, 0)))
+summary(as.factor(baseline_df$older_children))
+
+# make a table for chilccare challenges, for only women with older children.
+childcare_table <- baseline_df %>%
+  filter(older_children == 1) %>%
+  summarize(N_total = n(), 
+            'Reduced ability to afford childcare' = sum(current_afford_childcare___1 == 1, na.rm = T), 'Child care challenges' = sum(current_job_childcare___1 == 1, na.rm = T))
+
+childcare_table_long <- childcare_table %>%
+  gather(key = "Changes", value = "N_endorsed", -N_total) %>%
+  select(Changes, N_endorsed, N_total) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
+  select( Changes,  N_endorsed, Percent)
 
 ```
 
-
-
+summary stat for childcare infobox 
 ```{r}
-# open the distress data...
-load("../clean_data/impact_disruption_cleaned.Rda")
+childcare_fact <- childcare_table_long %>%
+  filter(Changes == "Child care challenges") %>%
+  select(Percent)
+
+percent_childcare <- round(childcare_fact$Percent)
+```
+
+
+## job change distress
+```{r}
 
 # re-organize 
-job_distress_df <- pred_vars %>%
+job_distress_df <- baseline_df %>%
   select(status, contains("job_distress"), record_id) %>%
   mutate_if(is.numeric, funs (convert_7pt_likert(.))) %>%
   drop_na()
@@ -108,23 +137,23 @@ job_distress_long <- job_distress_df %>%
   group_by(Factor, Rating) %>%
   summarize(n = n(), 
             Percent = round(n()/nrow(job_distress_df)*100)) %>%
+  ungroup() %>%
   # make sure the factors are in logical order for plots.
   mutate(Rating = fct_relevel(Rating, "No distress", "Mild distress", "Moderate distress", "High distress"))
 
 # for now, plot a single one as test case.
 job_distress_plot <- job_distress_long %>%
   filter(Factor == "Current Impact") %>%
-  ggplot(aes(x = Rating, y = Percent, fill = Rating)) + 
+  ggplot(aes(x = Factor, y = Percent, fill = Rating)) + 
   geom_bar(stat = "identity") +
-  coord_flip() + #my_colors_fill +
+   my_colors_rating4 +
    xlab("") + custom_theme 
 job_distress_plot
 ```
 
 
-## summary statsfor info boxes
+summary stats for job worries info box
 ```{r}
-percent_childcare <- round(self_job_changes_table_long$Percent[self_job_changes_table_long$Job_changes == "Child care challenges" &self_job_changes_table_long$Family_member == "Self"])
 
 fact_job_future <- job_distress_long %>%
   filter(Rating == "High distress" & Factor == "Future Impact") %>%

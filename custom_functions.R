@@ -1,13 +1,15 @@
 # Functions for COPE project - cleaning and analysis 
 
 ## directory set 
-data_dir <- "../clean_data/"
+
+data_dir = ""
 
 ## GGPLOT AESTHETICS 
 
 color_list <- c("navy", "light blue", "pink", "dark green", "purple")
 my_colors_fill = scale_fill_manual(values = color_list)
 my_colors_color = scale_color_manual(values = color_list)
+my_colors_rating4 = scale_fill_manual(values = c("navy", "royalblue2", "steelblue3", "light blue"))
 
 custom_theme <- theme_bw()  +
   # center the caption

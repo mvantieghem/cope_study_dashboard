@@ -30,8 +30,8 @@ library(readxl)
 library(lubridate)
 
 # load custom packages
-source("custom_functions.R")
-mom_data_all <- read.csv(paste0(data_dir, "cleaned_new_mom_survey_2020-07-14.csv"))
+source(paste0(data_dir, "custom_functions.R"))
+mom_data_all <- read.csv(paste0(data_dir, "clean_data/cleaned_new_mom_survey_2020-07-14.csv"))
 (N_completed_maternal_Q <- nrow(mom_data_all))
 ```
 
@@ -113,6 +113,7 @@ birth_plot <- birth_changes_table_long %>%
             caption = paste("Data aggregated from", birth_changes_table$N_total[birth_changes_table$Delivery_date =="After March 15, 2020"], "women who delivered after March 15th, 2020"))
         
 birth_plot
+#ggsave(birth_plot, file = "../plots/birth_change_plot.png")
 ```
 
 ## Changes over time, based on delivery date
@@ -168,7 +169,7 @@ birth_change_time_N <- sum(birth_time_table_long %>%
 list_birth_changes <- unique(birth_time_table_long$Birth_Changes)
 
 # plot
-birth_time_table_long %>%
+birth_change_time <- birth_time_table_long %>%
   # only include months with more than 10 respondents.
   filter(N_total > 10) %>%
 #  filter(Birth_Changes == input$change_choice) %>%
@@ -177,6 +178,8 @@ birth_time_table_long %>%
                                                      ncol = 2) +
   theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
   labs(caption = paste("Data aggregated from", birth_change_time_N, "women, with delivery dates binned in 2-week intevals."))
+
+#ggsave(birth_change_time, file = "../plots/birth_changes_over_time.png")
 
 ```
 

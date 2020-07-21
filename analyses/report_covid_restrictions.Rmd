@@ -26,12 +26,12 @@ library(tidyverse)
 library(ggplot2)
 library(readxl)
 
+#data_dir = "../"
 # load custom packages
-source("../custom_functions.R")
+source(paste0(data_dir, "custom_functions.R"))
 
-baseline_clean2 <- read.csv( file = paste0(data_dir, "complete_baseline_data_2020-07-14.csv"))
+baseline_clean2 <- read.csv( file = paste0(data_dir, "clean_data/cleaned_baseline_survey_2020-07-14.csv"))
 ```
-
 
 
 ## make table for restrictions
@@ -73,7 +73,7 @@ ggplot( aes(x = Restrictions, y = Percent, fill = status)) +
     caption = paste("Data aggregated from", restrict_table$N_total, "new and expecting mothers")) 
 
 restrictions_plot 
-
+#ggsave(restrictions_plot, file = "../plots/covid_restrictions_by_status.png")
 ```
 
 ##  table for which activities people miss the most
@@ -81,10 +81,10 @@ restrictions_plot
 N_total <- nrow(baseline_clean2 %>% filter(!is.na(activities_miss_most)))
 miss_table <- baseline_clean2 %>%
   filter(!is.na(activities_miss_most)) %>%
-  group_by(activities_miss_most, status) %>%
+  group_by(activities_miss_most) %>%
   summarize(N_endorsed = n()) %>%
   mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
-  select(status, activities_miss_most, N_endorsed, Percent) %>%
+  select(activities_miss_most, N_endorsed, Percent) %>%
   ungroup()
 
 miss_table
@@ -95,13 +95,16 @@ miss_table
 ```{r,  echo = F}
 miss_impact_plot <- miss_table %>%
     mutate(activities_miss_most = reorder(activities_miss_most, Percent)) %>%
-  ggplot( aes(x = activities_miss_most, y = Percent, fill = status)) + 
-  geom_bar(stat =  "identity", position = position_dodge()) + 
+  ggplot( aes(x = activities_miss_most, y = Percent)) + 
+  geom_bar(stat =  "identity", position = position_dodge(), 
+           fill = "navy") + 
    coord_flip()  + theme_bw() + xlab("") + 
     ylab ("Percent") +  custom_theme + my_colors_fill + 
   labs(#title = "Which activities do women miss the most?", 
        caption = paste("Data aggregated from", N_total, "new and expecting mothers"))
 miss_impact_plot 
+
+#ggsave(miss_impact_plot, file = "../plots/activities_miss_most_by_status.png")
 
 ```
 
@@ -113,12 +116,4 @@ miss_most <- miss_table %>%
   mutate(Percent = round(Percent)) 
 
 miss_most$Percent
-```
-
-## social disruptions ratings 
-```{r}
-
-baseline_clean2 %>%
-  select(social_disruptions_rating)
-
 ```

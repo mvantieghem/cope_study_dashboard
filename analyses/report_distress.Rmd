@@ -24,36 +24,23 @@ library(tidyverse)
 library(ggplot2)
 library(readxl)
 
+#data_dir <- "../"
 # load custom packages
-source("../custom_functions.R")
-```
+source(paste0(data_dir, "custom_functions.R"))
 
-# load data 
-```{r}
-pred_vars <- read.csv(paste0(data_dir, "baseline_impact_disrupt.csv"))
 
-baseline_df <- read.csv(paste0(data_dir, "complete_baseline_data_2020-07-14.csv"))
+baseline_df <- read.csv(paste0(data_dir, "clean_data/cleaned_baseline_survey_2020-07-14.csv"))
 
 ```
 
 get relevant demo data 
 ```{r}
-demo <- baseline_df %>%
-  select(record_id, currently_pregnant,  income_fixed, 
-         median_income, white, hispanic,
-         # past or current MH treatment endorsed
-         treatment_any_past___1, treatment_mh_current___1) %>%
+disrupt_df <- baseline_df %>%
   mutate(currently_pregnant = as.factor(currently_pregnant), 
          treatment_any_past___1 = as.factor(treatment_any_past___1),
          treatment_mh_current___1 = as.factor(treatment_mh_current___1))
 ```
 
-merge together
-```{r}
-disrupt_df <- pred_vars %>%
-  left_join(., demo, by = "record_id")
-nrow(disrupt_df)
-```
 
 
 ### material concern variables
@@ -85,6 +72,7 @@ concern_long_table <- concern_long %>%
 N_total <- concern_long_table$N_total[concern_long_table$status == "New Mom"] +
   concern_long_table$N_total[concern_long_table$status == "Pregnant"]
 
+list_concerns <- unique(concern_long_table$Concern)
 
 # plot ratings from lowest to highest
 concern_plot <- concern_long_table %>%
@@ -100,7 +88,7 @@ concern_plot <- concern_long_table %>%
 
 #Concerned about future access to...
 concern_plot
-ggsave(concern_plot, file= "../plots/concern_ratings_by_preg_status.png")
+#ggsave(concern_plot, file= "../plots/concern_ratings_by_preg_status.png")
 
 ```
 
@@ -114,8 +102,6 @@ covid_distress_long <- disrupt_df %>%
   gather(key = "Distress", value = "Rating", -status) %>%
   mutate(Distress = str_remove(Distress, "_distress"))
 
-N_total <- covid_distress_long_table$N_total[covid_distress_long_table$status == "New Mom"] +
-  covid_distress_long_table$N_total[covid_distress_long_table$status == "Pregnant"]
 
 covid_distress_long_table <- covid_distress_long %>%
   filter(!is.na(Distress)) %>%
@@ -124,6 +110,9 @@ covid_distress_long_table <- covid_distress_long %>%
             mean_rating = mean(Rating, na.rm = T), 
             upper_rating = mean_rating + sd(Rating, na.rm = T),
             lower_rating = mean_rating - sd(Rating, na.rm = T))
+
+N_total <- covid_distress_long_table$N_total[covid_distress_long_table$status == "New Mom"] +
+  covid_distress_long_table$N_total[covid_distress_long_table$status == "Pregnant"]
 
 # plot ratings from lowest to highest
 covid_distress_plot <- covid_distress_long_table %>%
@@ -136,14 +125,14 @@ covid_distress_plot <- covid_distress_long_table %>%
        caption = paste("Data aggregated from", N_total, "new and expecting mothers"))
 
 covid_distress_plot
-ggsave(covid_distress_plot, file= "../plots/covid_distress_ratings_by_preg_status.png", width = 9, height = 5)
+#ggsave(covid_distress_plot, file= "../plots/covid_distress_ratings_by_preg_status.png", width = 9, height = 5)
 ```
 
 
 ### Disrupt variables
 ```{r}
 # removing healthy meals, belongs in another category.
-disrupt_long <- pred_vars %>%
+disrupt_long <- disrupt_df %>%
   select(contains("disrupted"), status, - disrupted_meal_rating) %>%
   rename("work activities" = disrupted_work_rating, 
          "social activities" = disrupted_social_activities_rating, 
@@ -174,7 +163,7 @@ disrupt_plot <- disrupt_long_table %>%
 # how much has the COVID-19 outbreak disrupted your ability to engage in..
 
 disrupt_plot
-ggsave(disrupt_plot, file= "../plots/disrupt_ratings_by_preg_status.png", width = 9, height = 5)
+#ggsave(disrupt_plot, file= "../plots/disrupt_ratings_by_preg_status.png", width = 9, height = 5)
 ```
 
 
@@ -212,7 +201,7 @@ valence_plot <- impact_table_long %>%
 
 valence_plot
 
-ggsave(valence_plot, file= "../plots/valence_impact_on_life_by_preg_status.png")
+#ggsave(valence_plot, file= "../plots/valence_impact_on_life_by_preg_status.png")
 ```
 
 
@@ -247,7 +236,7 @@ impact_plot <- impact_long_table %>%
      ggtitle("Self-reported Rating", subtitle = "0 = nothing, 6 = extreme")
 
 impact_plot
-ggsave(impact_plot, file= "../plots/impact_stress_ratings_by_preg_status.png")
+#ggsave(impact_plot, file= "../plots/impact_stress_ratings_by_preg_status.png")
 ```
 
 ## biggest stressor
@@ -260,32 +249,30 @@ greatest_stress <- baseline_df %>%
 N_preg <- greatest_stress %>% filter(status == "Pregnant") %>% count()
 N_newmom <- greatest_stress %>% filter(status == "New Mom") %>% count()
 N_total <- N_preg + N_newmom
+
 stress_table <- greatest_stress %>%
   group_by(status, source_stress) %>%
   summarize(N_endorsed = n())
 stress_table <- stress_table %>%
   mutate(N_total = ifelse(status == "New Mom", N_newmom$n, N_preg$n), 
-         percent = round((N_endorsed/N_total)*100))
-
-as.factor(stress_table$source_stress)
+         percent = round((N_endorsed/N_total)*100)) %>%
+   filter(source_stress != "Not stressed" & 
+          percent > 1 & source_stress != "Other" & 
+           source_stress != "Access to food" & 
+           source_stress != "Access to baby supplies" & 
+           source_stress != "Impact on society")
 
 
 # plot ratings from lowest to highest
 stress_plot <- stress_table %>%
-  filter(source_stress != "Not stressed" & 
-          percent > 1 & source_stress != "Other" & 
-           source_stress != "Access to food" & 
-           source_stress != "Access to baby supplies") %>%
     mutate(source_stress = fct_reorder(source_stress, percent)) %>%
   ggplot(aes(x = source_stress, y = percent, fill = status)) +  
     geom_bar(stat =  "identity", position = position_dodge()) + 
     theme_bw() + ylab("Percent") + xlab("") + coord_flip() + 
       custom_theme + my_colors_fill + 
-  labs(title = "Single greatest source of stress due to Covid-19", 
+  labs(#title = "Single greatest source of stress due to Covid-19", 
           caption = paste("Data aggregated from", N_total, "new and expecting mothers"))
-# how much has the COVID-19 outbreak disrupted your ability to engage in..
-
 stress_plot
 
-ggsave(stress_plot, file= "../plots/single_greatest_stress_by_preg_status.png")
+#ggsave(stress_plot, file= "../plots/single_greatest_stress_by_preg_status.png")
 ```

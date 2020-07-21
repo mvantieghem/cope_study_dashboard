@@ -29,9 +29,9 @@ library(ggplot2)
 library(readxl)
 
 # load custom packages
-source("custom_functions.R")
+source(paste0(data_dir, "custom_functions.R"))
 
-mom_data_all <- read.csv(paste0(data_dir, "cleaned_new_mom_survey_2020-07-14.csv"))
+mom_data_all <- read.csv(paste0(data_dir, "clean_data/cleaned_new_mom_survey_2020-07-14.csv"))
 (N_completed_maternal_Q <- nrow(mom_data_all))
 
 ```
@@ -94,6 +94,8 @@ postnatal_changes_table_long %>%
       labs( #title = "Changes to Postnatal care during the Covid-19 outbreak", 
             caption = paste("Data aggregated from", postnatal_changes_table$N_total, "women with infants under 6 months of age"))
 postnatal_plot
+
+#ggsave(postnatal_plot, file = "../plots/postnatal_changes.png")
 ```
 
 
@@ -155,6 +157,8 @@ ggplot(aes(x = change, y = Percent)) +
        caption = paste("Data aggregated from", support_table$N, "women with infants under 6 months of age"))
 
 support_provider_plot
+
+#ggsave(support_provider_plot, file = "../plots/postnatal_provider_changes_in_support.png")
 ```
 
 ## ADD CONCERNS
@@ -184,8 +188,8 @@ need to make a variable based on month they filled out this Q.
         #   mom mat care concern
          #  child health concern
 
-mom_concerns_table_long <- mom_concerns_table %>%
-  gather(key= "Concern", value = "mean_rating", -N_total, -child_birth_week)
+#mom_concerns_table_long <- mom_concerns_table %>%
+ # gather(key= "Concern", value = "mean_rating", -N_total, -child_birth_week)
 
 mom_concerns_table_long %>%
   ggplot(aes (x = child_birth_week, y = mean_rating, 

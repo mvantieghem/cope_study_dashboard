@@ -13,10 +13,10 @@ library(shinydashboard)
 source("custom_functions.R")
 #source_rmd("scripts/1a_data_cleaning_baselineQ.Rmd")
 #ource_rmd("scripts/1b_data_cleaning_new_momQ.Rmd")
-source_rmd("analyses/report_pregnant_survey.Rmd")
-source_rmd("analyses/report_birth_changes.Rmd")
-source_rmd("analyses/report_postnatal_changes.Rmd")
-source_rmd("analyses/report_concerns_stress.Rmd")
+source_rmd("analyses/report_pregnant_survey.Rmd") # fixed
+source_rmd("analyses/report_birth_changes.Rmd") # fixed
+source_rmd("analyses/report_postnatal_changes.Rmd") # foxed
+source_rmd("analyses/report_distress.Rmd") # fixed
 source_rmd("analyses/report_financial_changes.Rmd")
 source_rmd("analyses/report_covid_restrictions.Rmd")
 
@@ -34,10 +34,11 @@ sidebar <- dashboardSidebar(
   )
 )
 # Create body of dashboard ----------------
-body <-  dashboardBody(
-  tabItems(
+
+
+
     # First tab content
-    tabItem(tabName = "About",
+About_tab <- tabItem(tabName = "About",
             h2("Coronovirus-19 and Perinatal Experiences (COPE) Study"),
             h3("About the Study"),
             p("The goal of this study is to assess experiences and feelings of pregnant and new mothers during the Covid-19 pandemic.
@@ -60,10 +61,10 @@ body <-  dashboardBody(
                           the world, and providing a platform for new collaborations to emerge."),
             h3("About the App"),
             HTML("<p>Author:  <a href = https://mvantieghem.github.io >Michelle VanTieghem</a>"),
-            HTML("<p>Code on <a href =https://github.com/mvantieghem/cope_study_dashboard >Github</a>")),
+            HTML("<p>Code on <a href =https://github.com/mvantieghem/cope_study_dashboard >Github</a>"))
     
     # Second tab content
-    tabItem(tabName = "Healthcare",
+Healthcare_tab <- tabItem(tabName = "Healthcare",
             h3("Perinatal Health Care during the Covid-19 pandemic."), 
             p("We asked new and expectant moms to share their experiences about how their health care changed due to the pandemic."),
             fluidRow(
@@ -86,7 +87,7 @@ body <-  dashboardBody(
                            box(title = "How has Covid-19 impacted prenatal care?",
                                width = 12, status = "primary", solidHeader =  T,
                              plotOutput (outputId = "prenatal_plot")),
-                           box(title = "What are pregnant women's top concerns?", 
+                           box(title = "Are women concerned about these changes?", 
                                width = 12, height = 550, status = "primary", solidHeader = T, 
                                plotOutput (outputId = "preg_concern_plots")))), 
                 ##** ADD BOX FOR PROVIDER SUPPORT
@@ -113,9 +114,9 @@ body <-  dashboardBody(
                               plotOutput(outputId = 'support_provider_plot'))))
               )
             )
-    ),
-    # THIRD TAB Content ------------------------
-    tabItem(tabName = "Covid-19",
+    )
+    # THIRD TAB Content
+covid_tab <- tabItem(tabName = "Covid-19",
             h3("Exposures to covid-19"),
             p("Pregnant women and new mothers shared information on their exposures to covid-19"),
             fluidRow(
@@ -147,9 +148,9 @@ body <-  dashboardBody(
                                plotOutput(outputId = 'exposures_plot')))) 
               )
             )
-    ),
-    ## ANOTHER TAB CONTENT --------------------
-    tabItem(tabName = "Impact", 
+    )
+    ## ANOTHER TAB CONTENT 
+Impact_tab <- tabItem(tabName = "Impact", 
             h3("Impact on daily life during the Covid-19 pandemic"),
             p("We asked women how the covid-19 pandemic has impacted different facets of their daily lives"),
             fluidRow(
@@ -165,8 +166,7 @@ body <-  dashboardBody(
                            infoBoxOutput(outputId = "percent_miss_most_fact", 
                                          width = 12),
                            infoBoxOutput(outputId = "", 
-                                         width = 12),fill = TRUE)
-                ),
+                                         width = 12),fill = TRUE)),
                 tabPanel('Impact on Employment', 
                          fluidRow(
                            box(title= "How has Covid-19 impacted women's employment and finances?",
@@ -176,47 +176,31 @@ body <-  dashboardBody(
                          box(title = "How worried are women about these changes?", 
                              width = 12, height = 300, solidHeader = T, status = "primary",
                              plotOutput(outputId = "job_distress_plot")))),
+               
+                tabPanel('Top Concerns', 
+                         fluidRow(
+                           box(title = "What is the single greatest source of stress?",
+                               width = 12, solidHeader = T, status = "primary", 
+                               plotOutput(outputId = "stress_plot")), 
+                           box(title = "Concerns about reduced access to material goods and services",
+                               width = 12, solidHeader = T, status = "primary", 
+                                      checkboxGroupInput(inputId = "concern_choice",
+                                          label = "Concerns about reduced access to ...",
+                                          choices = list_concerns, 
+                                          selected = "Food or goods"),
+                                      plotOutput(outputId = 'concern_plot')))),
                 tabPanel('Restrictions to Activities', 
                          fluidRow(
                            #box(width = 12, status = "primary", solidHeader =  T,
-                            #    plotOutput(outputId = 'restrictions_plot')),
+                           #    plotOutput(outputId = 'restrictions_plot')),
                            box(title = "Which activities do women miss the most?",
                                width = 12, solidHeader = T, status = "primary",
-                               plotOutput(outputId = 'miss_impact_plot')))) 
-    ),
-    tabItem(tabName = "Stress",
-            h3("Concerns and worries during Covid-19"),
-            p("Women shared their greatest sources of concern during this stressful time."),
-            fluidRow(
-              tabBox(
-                title = "", 
-                id = "tabset1", width = "450px", selected = "Summary", 
-                tabPanel('Summary',  
-                         fluidRow(
-                           infoBoxOutput(outputId = "", 
-                                         width = 12),
-                           infoBoxOutput(outputId = "", 
-                                         width = 12),
-                           infoBoxOutput(outputId = "", 
-                                         width = 12),
-                           infoBoxOutput(outputId = "", 
-                                         width = 12),fill = TRUE)
-                ),
-                
-                tabPanel('Top Concerns', 
-                         checkboxGroupInput(inputId = "concern_choice",
-                                      label = "Concerns about reduced access to ...",
-                                      choices = list_concerns, 
-                                      selected = "food"),
-                         plotOutput(outputId = 'concern_plot')),
-                tabPanel('Biggest Stressors',
-                         plotOutput(outputId = 'stress_plot')), 
-                tabPanel('Changes',
-                         plotOutput(outputId = 'change_plot'))
+                               plotOutput(outputId = 'miss_impact_plot'))))
+                # add changes here. positive or negative
               )
             )
-    ),
-    tabItem(tabName = "Coping",
+    )
+Coping_tab <- tabItem(tabName = "Coping",
             h3("Coping during the time of the Covid-19 pandemic"),
             p("Women shared how they are coping with stress and receiving social support"),
             fluidRow(
@@ -246,14 +230,16 @@ body <-  dashboardBody(
               )
             )
     )
-  )
-)
+  
 
-  # Put it all together -------
+# put tabs together  -------
+body <-  dashboardBody(
+  tabItems(About_tab, Healthcare_tab, Impact_tab))
+
+# put the whole dashboard together
 ui <-  dashboardPage(
   dashboardHeader(title = "NYU COPE Study"), 
-  sidebar, 
-  body)
+  sidebar, body)
 
 # SERVER FUNCTION ---------------------------------------------------------
 
@@ -292,7 +278,7 @@ server_function <- function(input, output) {
   output$percent_childcare_fact  <- renderInfoBox({
     infoBox(title = "", 
             paste0(percent_childcare, "%"), color = "navy",
-            subtitle = "Of women reported childcare challenges due to Covid-19",
+            subtitle = "Of mothers (with at least one child) reported childcare challenges due to Covid-19",
             icon = icon("child", class = "fas fa-child", lib = "font-awesome"))
   })
   output$percent_job_future_fact <- renderInfoBox({
@@ -337,11 +323,26 @@ server_function <- function(input, output) {
   output$postnatal_plot <- renderPlot({postnatal_plot })
   output$support_provider_plot <- renderPlot({support_provider_plot}, height = 300)
   
-  # load static plots for Impact panel 
-   output$financial_impact_plot  <- renderPlot({financial_impact_plot })
-   output$job_distress_plot  <- renderPlot({job_distress_plot} , height = 250)
-   output$restrictions_plot <- renderPlot({restrictions_plot})
+  # load more interactive plots for impact panel
+   output$financial_impact_plot  <- renderPlot({financial_impact_plot}) 
+   output$job_distress_plot  <- renderPlot({job_distress_plot} , height = 350)
+  # output$restrictions_plot <- renderPlot({restrictions_plot})
    output$miss_impact_plot <- renderPlot({miss_impact_plot})
+   
+   output$concern_plot <- renderPlot({
+     concern_long_table %>%
+       mutate(Concern = fct_reorder(Concern, mean_rating)) %>%
+      filter(Concern %in% input$concern_choice) %>%
+       ggplot(aes(x = Concern, y = mean_rating, fill = status)) +  
+       geom_bar(stat =  "identity", position = position_dodge()) + 
+       theme_bw() + xlab("") + ylab("Concern Rating (mean)") +
+       custom_theme + my_colors_fill + ylim(0, 3) + coord_flip() +
+       labs("", subtitle = "",
+            caption ="0 = no concern, 3 = very concerned \n",
+            paste("Data aggregated from", N_total, "new and expecting mothers"))
+   })
+   
+   output$stress_plot <- renderPlot({stress_plot})
 
 }
 

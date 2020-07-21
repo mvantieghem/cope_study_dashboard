@@ -28,54 +28,17 @@ library(readxl)
 library(gridExtra)
 
 # load custom packages
-source("custom_functions.R")
+source(paste0(data_dir, "custom_functions.R"))
 
 # load cleaned data
-load("clean_data/baseline_deidentified_df.Rdata")
+preg_survey_df <- read.csv(paste0(data_dir, "clean_data/cleaned_preg_survey_2020-07-14.csv"))
 ```
 
-
-## add prenatal vars
-```{r}
-baseline_clean2 <- baseline_clean2 %>%
-   # track prenatal care change
-    mutate(no_resp_prenatal_change = ifelse(currently_pregnant == 0, NA,
-                                ifelse(prenatal_care_changes___1 == 0 &
-                               (prenatal_care_changes___2 == 0) &
-                                 (prenatal_care_changes___3 == 0) &
-                                 (prenatal_care_changes___4 == 0) &
-                                 (prenatal_care_changes___5== 0) &
-                                 (prenatal_care_changes___6== 0) &
-                                 (prenatal_care_changes___7== 0) &
-                                 (prenatal_care_changes___8== 0) &
-                                 (prenatal_care_changes___9 == 0) &
-                                 (prenatal_care_changes___10 == 0) & 
-                                 (prenatal_care_changes___11 == 0), 1, 0)),
-     any_prenatal_change = ifelse(prenatal_care_changes___1 == 1 |
-                               prenatal_care_changes___2 == 1 |
-                               prenatal_care_changes___3 == 1 |
-                               prenatal_care_changes___4 == 1 |
-                               prenatal_care_changes___5 == 1 |
-                               prenatal_care_changes___6 == 1 |
-                               prenatal_care_changes___7 == 1 |
-                               prenatal_care_changes___8 == 1 |
-                                 prenatal_care_changes___9 == 1 |
-                               prenatal_care_changes___10 == 1, 1, 
-                               # option 11 = no change, will get marked 0 
-                                      # mark people who answered none of these options as NA.
-                               ifelse(no_resp_prenatal_change == 1, NA, 0)),
-     # make prettier version for plotting  
-     Prenatal_change_factor = as.factor(ifelse(any_prenatal_change == 0, "No changes", "Changes to Prenatal Care")))
-
-summary(baseline_clean2$Prenatal_change_factor)
-summary(as.factor(baseline_clean2$any_prenatal_change))
-summary(as.factor(baseline_clean2$no_resp_prenatal_change))
-```
 
 ### prenatal care changes
 
 ```{r}
-prenatal_changes_table <- baseline_clean2 %>%
+prenatal_changes_table <- preg_survey_df %>%
   # only include people who answered this Q
   filter(!is.na(any_prenatal_change)) %>%
   # group by birth before or after March 15, 2020
@@ -97,7 +60,7 @@ prenatal_changes_table_long <- prenatal_changes_table %>%
   mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
   select(prenatal_changes,  N_endorsed, Percent)
 
-save(prenatal_changes_table_long, file = "tables/prenatal_changes_table_long.Rdata")
+#save(prenatal_changes_table_long, file = "../tables/prenatal_changes_table_long.Rdata")
 ```
 
 
@@ -123,12 +86,13 @@ prenatal_plot <- prenatal_changes_table_long %>%
             caption = paste("Data aggregated from", prenatal_changes_table$N_total, "pregnant women"))  +
       xlab ("") + custom_theme 
 prenatal_plot
+# ggsave(prenatal_plot, file = "../plots/prenatal_change.png")
 ```
 
 ## pregnancy concerns 
 ```{r}
 
-preg_concern_vars <- baseline_clean2 %>%
+preg_concern_vars <- preg_survey_df %>%
   select(preg_birth_concern, preg_support_concern, preg_child_health_concern) %>%
   filter(!is.na(preg_birth_concern) & !is.na(preg_support_concern) & !is.na(preg_child_health_concern))
 N_total <- nrow(preg_concern_vars)
