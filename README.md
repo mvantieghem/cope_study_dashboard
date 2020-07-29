@@ -1,6 +1,6 @@
 ## Covid-19 and Perinatal Experiences (COPE) Study 
 Github repository for the COPE Study data dashboard  \
-Author: Michelle VanTieghem, Post-doctoral fellow at NYU Langone Health \
+Author: Michelle VanTieghem
 Research conducted by Baby Bees Lab, Department of Child and Adolescent Psychiatry at NYU Langone 
 
 ## Contents 

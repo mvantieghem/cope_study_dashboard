@@ -1,0 +1,37 @@
+---
+title: "COPE EDA: emtoions & feelings over time"
+author: "Michelle.VanTieghem"
+date: "July 14, 2020"
+output:
+  html_document:
+    number_sections: no
+    df_print: kable
+    code_folding: show
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set(message = F, warning = F)
+
+library(psych)
+# load packages
+library(corrplot)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+
+# load custom packages
+source("../custom_functions.R")
+```
+
+
+# load data
+```{r}
+covid_long <- read.csv( "../clean_data/longitudinal_bsi_ptsd.csv", row.names = F)
+baseline_df <- read.csv("../clean_data/complete_baseline_data_2020-07-14.csv")
+
+```

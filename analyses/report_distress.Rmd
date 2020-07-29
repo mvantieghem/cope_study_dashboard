@@ -24,10 +24,9 @@ library(tidyverse)
 library(ggplot2)
 library(readxl)
 
-#data_dir <- "../"
+data_dir <- "../"
 # load custom packages
 source(paste0(data_dir, "custom_functions.R"))
-
 
 baseline_df <- read.csv(paste0(data_dir, "clean_data/cleaned_baseline_survey_2020-07-14.csv"))
 
@@ -36,12 +35,11 @@ baseline_df <- read.csv(paste0(data_dir, "clean_data/cleaned_baseline_survey_202
 get relevant demo data 
 ```{r}
 disrupt_df <- baseline_df %>%
+   # making categorical
   mutate(currently_pregnant = as.factor(currently_pregnant), 
          treatment_any_past___1 = as.factor(treatment_any_past___1),
          treatment_mh_current___1 = as.factor(treatment_mh_current___1))
 ```
-
-
 
 ### material concern variables
 0	Not of concern \
@@ -220,7 +218,6 @@ impact_long <- impact %>%
   mutate(measure = ifelse(measure == "impact_covid_rating", 
                           "Daily Impact", "Stress Level"))
 
-
 impact_long_table <- impact_long %>%
   group_by(status, measure) %>%
   summarize(mean_rating = mean(Rating, na.rm = T), 
@@ -232,7 +229,7 @@ impact_plot <- impact_long_table %>%
   ggplot(aes(x = measure, y = mean_rating, fill = status)) +  
     geom_bar(stat =  "identity", position = position_dodge()) + 
     theme_bw() + xlab("") + ylab("Mean Rating") +
-      custom_theme + my_colors_fill + ylim(0, 6) +
+    custom_theme + my_colors_fill + ylim(0, 6) +
      ggtitle("Self-reported Rating", subtitle = "0 = nothing, 6 = extreme")
 
 impact_plot
