@@ -63,7 +63,7 @@ restrict_table_long <- restrict_table %>%
   select(status, first_child, Restrictions,  N_endorsed, Percent)
 restrict_table_long
 
-write.csv(restrict_table_long, file = paste0(data_dir, "tables/covid_behavior_restrictions_by_4groups.csv", row.names = F))
+write.csv(restrict_table_long, file = paste0(data_dir, "tables/covid_behavior_restrictions_by_4groups.csv"), row.names = F)
 ```
 
 plot restrictions
@@ -130,7 +130,7 @@ miss_table_long <- miss_table_by_group %>%
   mutate(Percent = round((N_endorsed/N_total)*100, 2)) 
 
 miss_table_long
-write.csv(miss_table_long, file = paste0(data_dir, "tables/activity_miss_most_by_4groups.csv", row.names = F))
+write.csv(miss_table_long, file = paste0(data_dir, "tables/activity_miss_most_by_4groups.csv"), row.names = F)
 
 ```
 

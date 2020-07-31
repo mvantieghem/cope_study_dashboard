@@ -11,14 +11,14 @@ library(shinydashboard)
 
 # process data and generate tables and plots 
 source("custom_functions.R")
-#source_rmd("scripts/1a_data_cleaning_baselineQ.Rmd")
-#ource_rmd("scripts/1b_data_cleaning_new_momQ.Rmd")
 source_rmd("analyses/report_pregnant_survey.Rmd") # fixed
 source_rmd("analyses/report_birth_changes.Rmd") # fixed
 source_rmd("analyses/report_postnatal_changes.Rmd") # foxed
-source_rmd("analyses/report_distress.Rmd") # fixed
+source_rmd("analyses/report_baseline_distress_and_impact.Rmd") # fixed
 source_rmd("analyses/report_financial_changes.Rmd")
 source_rmd("analyses/report_covid_restrictions.Rmd")
+source_rmd("analyses/report_cope_core_part1_disruptions.Rmd")
+source_rmd("analyses/report_cope_core_part2_positive.Rmd")
 
 # USER INTERFACE -----------------------------------------------------
 
@@ -27,15 +27,12 @@ sidebar <- dashboardSidebar(
   sidebarMenu(
     menuItem("About", tabName = "About", icon = icon("th")),
     menuItem("Healthcare", tabName = "Healthcare", icon = icon("th")),
-  #  menuItem("Covid-19", tabName = "Covid-19", icon = icon("th")),
+  # menuItem("Covid-19", tabName = "Covid-19", icon = icon("th")),
     menuItem("Impact", tabName = "Impact", icon = icon("th"))
-    #menuItem("Stress", tabName = "Stress", icon = icon("th"))
-    #menuItem("Coping", tabName= "Coping", icon = icon("th"))
+  # menuItem("Well-being", tabName = "Well-being", icon = icon("th"))
   )
 )
 # Create body of dashboard ----------------
-
-
 
     # First tab content
 About_tab <- tabItem(tabName = "About",
@@ -87,10 +84,11 @@ Healthcare_tab <- tabItem(tabName = "Healthcare",
                            box(title = "How has Covid-19 impacted prenatal care?",
                                width = 12, status = "primary", solidHeader =  T,
                              plotOutput (outputId = "prenatal_plot")),
+                           # change this plot to means of concerns, and compare all 3
                            box(title = "Are women concerned about these changes?", 
                                width = 12, height = 550, status = "primary", solidHeader = T, 
                                plotOutput (outputId = "preg_concern_plots")))), 
-                ##** ADD BOX FOR PROVIDER SUPPORT
+               
                 tabPanel("Delivery Plans", 
                          fluidRow(
                           # box(width = 12, status = "primary", solidHeader =  T,
@@ -102,14 +100,13 @@ Healthcare_tab <- tabItem(tabName = "Healthcare",
                                                   choices = list_birth_changes,
                                                   selected = "Any change to birth plan"),
                                plotOutput(outputId = 'birth_time_plot')))),
-                #*** ADD ROW WITH CHANGES OVER TIME BASED ON BIRTH***
-                #* ADD LEVEL OF DISTRESS DUE TO THESE CHANGES****
                 tabPanel("Postnatal Care", 
                          fluidRow( 
                            box(title = "How has Covid-19 impacted postnatal care?", 
                                width = 12, status = "primary",solidHeader =  T,
                                plotOutput(outputId = 'postnatal_plot')),
-                            box(title = "Has support from perinatal care providers changed due to Covid-19?", 
+                           # change this to their rating of support.
+                            box(title = "How well are women being supported by their care providers?", 
                                 width = 12, height = 400, status = "primary", solidHeader =  T,
                               plotOutput(outputId = 'support_provider_plot'))))
               )
@@ -125,34 +122,44 @@ covid_tab <- tabItem(tabName = "Covid-19",
                 id = "tabset1", width = "450px", selected = "Summary", 
                 tabPanel('Summary',  
                          fluidRow(
-                           infoBoxOutput(outputId = "Pregnant Women tested positive", 
+                           infoBoxOutput(outputId = "Women received a test for Covid-19", 
                                          width = 12),
-                           infoBoxOutput(outputId = "New mothers tested positive", 
+                           infoBoxOutput(outputId = "Women tested positive for Covid-19", 
                                          width = 12),
-                           infoBoxOutput(outputId = "Family member tested positive", 
+                           infoBoxOutput(outputId = "Family members tested positive for Covid-19", 
                                          width = 12),
-                           infoBoxOutput(outputId = "", 
+                           infoBoxOutput(outputId = "Women reported experiencing symptoms of Covid-19", 
                                          width = 12),fill = TRUE)
                 ),
                 tabPanel('Testing', 
                          fluidRow(
-                           box(width = 12, status = "primary", solidHeader =  T,
-                               plotOutput (outputId = "testing_plot")))), 
+                           box(title = "Rates of Covid-19 Testing",  # self vs. family 
+                               width = 12, status = "primary", solidHeader =  T,
+                               plotOutput (outputId = "testing_plot")), 
+                           box(title = "How has Covid-19 Testing changed over time?", # self vs. family
+                               width = 12, status = "primary", solidHeader =  T,
+                               plotOutput (outputId = "testing_change_plot")))), 
                 tabPanel('Symptoms', 
                          fluidRow(
-                           box(width = 12, status = "primary", solidHeader =  T,
-                               plotOutput(outputId = 'symptom_plot')))),
-                tabPanel('Exposures',
+                           box(title = "Rates of Covid-19 Symptoms",  # self vs. family
+                               width = 12, status = "primary", solidHeader =  T,
+                               plotOutput(outputId = 'symptom_plot')),
+                           box(title = "How has Covid-19 symptom rates changed over time?", # self vs. family
+                               width = 12, status = "primary", solidHeader =  T,
+                               plotOutput(outputId = 'symptom_change_plot')))),
+                tabPanel('Concerns ',
                          fluidRow(
-                           box(width = 12, status = "primary", solidHeader =  T,
-                               plotOutput(outputId = 'exposures_plot')))) 
+                           box(title = "How distressed are women about potential covid-19 illness?", 
+                               width = 12, status = "primary", solidHeader =  T,
+                               plotOutput(outputId = 'covid_distress_plot'))))
+                          # can look at how this changes over time!
               )
             )
     )
     ## ANOTHER TAB CONTENT 
 Impact_tab <- tabItem(tabName = "Impact", 
             h3("Impact on daily life during the Covid-19 pandemic"),
-            p("We asked women how the covid-19 pandemic has impacted different facets of their daily lives"),
+            p("Women shared their experiences and feelings about pandemic-related changes."),
             fluidRow(
               tabBox(
                 title = "", 
@@ -167,74 +174,89 @@ Impact_tab <- tabItem(tabName = "Impact",
                                          width = 12),
                            infoBoxOutput(outputId = "", 
                                          width = 12),fill = TRUE)),
-                tabPanel('Impact on Employment', 
+                tabPanel('Financial & Employment Impacts', 
                          fluidRow(
                            box(title= "How has Covid-19 impacted women's employment and finances?",
                                width = 12, solidHeader =  T, status = "primary",
                                 plotOutput (outputId = "financial_impact_plot")),
-                       #  note that height is in pixels, and width is relative to actual width of page.
-                         box(title = "How worried are women about these changes?", 
-                             width = 12, height = 300, solidHeader = T, status = "primary",
-                             plotOutput(outputId = "job_distress_plot")))),
-               
-                tabPanel('Top Concerns', 
+                           box(title = "How worried are women about these changes?", 
+                               width = 12, height = 300, solidHeader =  T, status = "primary",
+                               plotOutput (outputId = "job_distress_plot")))),
+              
+                tabPanel("Negative Daily Impacts", 
                          fluidRow(
-                           box(title = "What is the single greatest source of stress?",
-                               width = 12, solidHeader = T, status = "primary", 
-                               plotOutput(outputId = "stress_plot")), 
-                           box(title = "Concerns about reduced access to material goods and services",
-                               width = 12, solidHeader = T, status = "primary", 
-                                      checkboxGroupInput(inputId = "concern_choice",
-                                          label = "Concerns about reduced access to ...",
-                                          choices = list_concerns, 
-                                          selected = "Food or goods"),
-                                      plotOutput(outputId = 'concern_plot')))),
-                tabPanel('Restrictions to Activities', 
+                          
+                           box(title = "What are the negative impacts of Covid-19 on women's lives?",
+                               width = 12, solidHeader =  T, status = "primary",
+                               plotOutput (outputId = "core1_neg_plot")),
+                             box(title = "Which activities do women miss the most?",
+                                 width = 12, solidHeader = T, status = "primary",
+                                 plotOutput(outputId = 'miss_impact_plot')))), 
+                tabPanel("Top concerns", 
                          fluidRow(
-                           #box(width = 12, status = "primary", solidHeader =  T,
-                           #    plotOutput(outputId = 'restrictions_plot')),
-                           box(title = "Which activities do women miss the most?",
-                               width = 12, solidHeader = T, status = "primary",
-                               plotOutput(outputId = 'miss_impact_plot'))))
-                # add changes here. positive or negative
+                           # instead of this time 1 plot, get the cope IU longitudinal disruptions
+                           box(title = "Single greatest source of stress due to covid-19", 
+                               width = 12, solidHeader =  T, status = "primary",
+                               plotOutput (outputId = "stress_plot")), 
+                           box(title = "What are women most concerned about?",
+                               width = 12, solidHeader =  T, status = "primary",
+                               plotOutput (outputId = "concern_plot"))))
+                # could add stress plot, if it changes over time.
               )
             )
-    )
-Coping_tab <- tabItem(tabName = "Coping",
-            h3("Coping during the time of the Covid-19 pandemic"),
-            p("Women shared how they are coping with stress and receiving social support"),
-            fluidRow(
-              tabBox(
-                title = "", 
-                id = "tabset1", width = "450px", selected = "Summary", 
-                tabPanel('Summary',  
+)
+
+#   UNUSED PIECES
+#box(title = "Has Covid-19 overall had a positive or negative impact?",
+ #   width= 12, solidHeader =  T, status = "primary",
+  #  plotOutput(outputId = "valence_plot")),
+
+Wellbeing_tab <- tabItem(tabName  = "Well-being",
+                         h3("Well-being, coping, and social support"),
+                         p("We asked women how they are coping with stress during the pandemic"),
+                fluidRow(
+                  tabBox(
+                    title = "", 
+                    id = "tabset1", width = "450px", selected = "Summary", 
+                    tabPanel('Summary',  
+                             fluidRow(
+                               infoBoxOutput(outputId = "", 
+                                             width = 12),
+                               infoBoxOutput(outputId = "", 
+                                             width = 12),
+                               infoBoxOutput(outputId = "", 
+                                             width = 12),
+                               infoBoxOutput(outputId = "", 
+                                             width = 12),fill = TRUE)),
+                  # tabPanel("Emotions and Feelings"),
+                   # BSI and PTSD items?
+                  tabPanel('Social Support', 
                          fluidRow(
-                           infoBoxOutput(outputId = "", 
-                                         width = 12),
-                           infoBoxOutput(outputId = "", 
-                                         width = 12),
-                           infoBoxOutput(outputId = "", 
-                                         width = 12),
-                           infoBoxOutput(outputId = "", 
-                                         width = 12), fill = TRUE)
-                ),
-  
-                tabPanel('Coping strategies', 
-                         plotOutput(outputId = 'coping_plot')),
-                tabPanel('Social support',
-                         plotOutput(outputId = 'social_plot')), 
-                tabPanel('Resources', 
-                         plotOutput(outputId = 'resources_plot')), 
-                tabPanel('Positive change',
-                         plotOutput(outputId = 'positive_words'))
+                          
+                            box(title = "How are women meeting their social support needs?", 
+                                          width = 12, solidHeader = T, status = "primary", 
+                                          plotOutput(outputId = "social_how_plot")),
+                            box(title = "Who are women reciving social support from?",
+                                          width = 12, solidHeader = T, status = "primary", 
+                                          plotOutput(outputId = "social_who_plot")))),
+              tabPanel("Positive Impacts", 
+                       fluidRow(
+                       box(title = "What are the positive effects of Covid-19 on women's daily lives?",
+                           width = 12, solidHeader =  T, status = "primary",
+                           plotOutput (outputId = "positive_change_plot")),
+                       box(title = "What coping strategies are most helpful for women?",
+                           width= 12, solidHeader =  T, status = "primary",
+                           plotOutput(outputId = "coping_plot"))))
+          
               )
-            )
+         )
     )
+
   
 
 # put tabs together  -------
 body <-  dashboardBody(
-  tabItems(About_tab, Healthcare_tab, Impact_tab))
+  tabItems(About_tab, Healthcare_tab, Impact_tab)) # covid_tab, Wellbeing_tab))
 
 # put the whole dashboard together
 ui <-  dashboardPage(
@@ -325,24 +347,16 @@ server_function <- function(input, output) {
   
   # load more interactive plots for impact panel
    output$financial_impact_plot  <- renderPlot({financial_impact_plot}) 
-   output$job_distress_plot  <- renderPlot({job_distress_plot} , height = 350)
+   output$job_distress_plot  <- renderPlot({job_distress_plot}, height = 200)
   # output$restrictions_plot <- renderPlot({restrictions_plot})
    output$miss_impact_plot <- renderPlot({miss_impact_plot})
+   output$valence_plot <- renderPlot({valence_plot})
+   output$core1_neg_plot <- renderPlot({core1_neg_plot})
    
-   output$concern_plot <- renderPlot({
-     concern_long_table %>%
-       mutate(Concern = fct_reorder(Concern, mean_rating)) %>%
-      filter(Concern %in% input$concern_choice) %>%
-       ggplot(aes(x = Concern, y = mean_rating, fill = status)) +  
-       geom_bar(stat =  "identity", position = position_dodge()) + 
-       theme_bw() + xlab("") + ylab("Concern Rating (mean)") +
-       custom_theme + my_colors_fill + ylim(0, 3) + coord_flip() +
-       labs("", subtitle = "",
-            caption ="0 = no concern, 3 = very concerned \n",
-            paste("Data aggregated from", N_total, "new and expecting mothers"))
-   })
-   
+   output$concern_plot <- renderPlot({concern_plot})
    output$stress_plot <- renderPlot({stress_plot})
+   output$positive_change_plot <- renderPlot({positive_change_plot})
+  
 
 }
 

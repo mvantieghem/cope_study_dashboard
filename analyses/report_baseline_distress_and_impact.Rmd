@@ -51,12 +51,12 @@ disrupt_df <- baseline_df %>%
 
 concern_long <- disrupt_df %>%
   select(contains("concern"), status, first_child) %>%
-  rename("Food or goods" = concern_food, 
-         "Medicine" = concern_medicine, 
-         "Baby supplies" = concern_babysupplies, 
-         "Mental health care" = concern_mh, 
-         "Health care" = concern_health_care,
-         "Social interactions" = concern_social) %>%
+  rename("Access to food or goods" = concern_food, 
+         "Access to medicine" = concern_medicine, 
+         "Access to baby supplies" = concern_babysupplies, 
+         "Access to mental health care" = concern_mh, 
+         "Access to health care" = concern_health_care,
+         "Access to social interactions" = concern_social) %>%
   gather(key = "Concern", value = "Rating", -status, -first_child )
 
 concern_long_table <- concern_long %>%
@@ -66,7 +66,7 @@ concern_long_table <- concern_long %>%
             mean_rating = mean(Rating, na.rm = T), 
             upper_rating = mean_rating + sd(Rating, na.rm = T),
             lower_rating = mean_rating - sd(Rating, na.rm = T))
-write.csv(concern_long_table, file = paste0(data_dir, "tables/concern_ratings_by_4groups.csv", row.names = F))
+write.csv(concern_long_table, file = paste0(data_dir, "tables/concern_ratings_by_4groups.csv"), row.names = F)
 ```
 
 plot 
@@ -80,11 +80,10 @@ list_concerns <- unique(concern_long_table$Concern)
 concern_plot <- concern_long_table %>%
   mutate(Concern = fct_reorder(Concern, mean_rating)) %>%
 #  filter(Concern %in% choice_concerns) %>%
-  ggplot(aes(x = Concern, y = mean_rating, fill = first_child)) +  
+  ggplot(aes(x = Concern, y = mean_rating, fill = status)) +  
     geom_bar(stat =  "identity", position = position_dodge()) + 
-    theme_bw() + xlab("") + ylab("Concern Rating (mean)") +
-      custom_theme + my_colors_fill + ylim(0, 3) + 
-  coord_flip() + facet_grid(~status) +
+    theme_bw() + xlab("") + ylab("Concern Rating") +
+      custom_theme + my_colors_fill + coord_flip() + ylim(0, 3) +
   labs("", subtitle = "",
         fill = "First Child",
          caption ="0 = no concern, 3 = very concerned \n",
@@ -115,7 +114,7 @@ covid_distress_long <- covid_distress %>%
             upper_rating = mean_rating + sd(Rating, na.rm = T),
             lower_rating = mean_rating - sd(Rating, na.rm = T))
 
-write.csv(covid_distress_long, file = paste0(data_dir, "tables/covid_distress_by_4groups.csv", row.names = F))
+write.csv(covid_distress_long, file = paste0(data_dir, "tables/covid_distress_by_4groups.csv"), row.names = F)
 ```
 
 plot ratings from lowest to highest
@@ -142,22 +141,22 @@ covid_distress_plot
 
 ```{r}
 job_distress <- disrupt_df %>%
-  select(current_job_distress, future_job_distress, status, first_child) %>%
+  select(current_job_distress, future_job_distress) %>%
   drop_na() %>%
   rename("Current" = current_job_distress, 
          "Future" = future_job_distress)
 
 job_distress_long <- job_distress %>%
-  gather(key = "Distress", value = "Rating", -status, -first_child) %>%
+  gather(key = "Distress", value = "Rating") %>%
   mutate(Distress = str_remove(Distress, "_distress")) %>%
   filter(!is.na(Distress)) %>%
-  group_by(status, first_child, Distress) %>%
+  group_by(Distress) %>%
   summarize(N_total = n(), 
             mean_rating = mean(Rating, na.rm = T), 
             upper_rating = mean_rating + sd(Rating, na.rm = T),
             lower_rating = mean_rating - sd(Rating, na.rm = T))
 
-write.csv(job_distress_long, file = paste0(data_dir, "tables/job_distress_by_4groups.csv", row.names = F))
+write.csv(job_distress_long, file = paste0(data_dir, "tables/job_distress.csv"), row.names = F)
 ```
 
 plot ratings from lowest to highest
@@ -165,17 +164,16 @@ plot ratings from lowest to highest
 
 N_total <- nrow(job_distress)
 job_distress_plot <- job_distress_long %>%
-  ggplot(aes(x = Distress, y = mean_rating, fill = status)) + 
-    geom_bar(stat =  "identity", position = position_dodge()) + 
-    theme_bw() + xlab("Job Worries") +
-  ylab("Mean Distress Rating") +
+  ggplot(aes(x = Distress, y = mean_rating)) + 
+    geom_bar(stat =  "identity", position = position_dodge(), fill = "navy") + 
+    theme_bw() +  coord_flip() + 
       custom_theme + my_colors_fill + ylim(0, 6) + 
- labs(title = "", 
-         subtitle = "",
+ labs(title = "", y = "Mean Distress Rating",
+         x = "",
        caption ="(0 = no distress, 6 = extremely distressed)")
 
 job_distress_plot
-#ggsave(job_distress_plot, file= paste0(data_dir, "plots/job_distress_ratings_by_preg_status.png")
+ggsave(job_distress_plot, file= paste0(data_dir, "plots/job_distress_ratings.png"))
 ```
 
 # Disrupt variables
@@ -196,7 +194,7 @@ disrupt_long_table <- disrupt_long %>%
             upper_rating = mean_rating + sd(Rating, na.rm = T),
             lower_rating = mean_rating - sd(Rating, na.rm = T))
 
-write.csv(disrupt_long_table, file = paste0(data_dir, "tables/disruption_ratings_by_4groups.csv", row.names = F))
+write.csv(disrupt_long_table, file = paste0(data_dir, "tables/disruption_ratings_by_4groups.csv"), row.names = F)
 
 ```
 
@@ -238,7 +236,7 @@ valence_long <- valence_table %>%
   gather(key = "valence", value = "N_endorsed", -N_total, -status, -first_child) %>%
   mutate(percent = round((N_endorsed/N_total)*100))
 
-write.csv(valence_long, file = paste0(data_dir, "tables/valence_ratings_by_4groups.csv", row.names = F))
+write.csv(valence_long, file = paste0(data_dir, "tables/valence_ratings_by_4groups.csv"), row.names = F)
 ```
 
 plot
@@ -279,7 +277,7 @@ impact_long_table <- impact_long %>%
             upper_rating = mean_rating + sd(Rating, na.rm = T),
             lower_rating = mean_rating - sd(Rating, na.rm = T))
 
-write.csv(impact_long_table, file = paste0(data_dir, "tables/impact_ratings_by_4groups.csv", row.names = F))
+write.csv(impact_long_table, file = paste0(data_dir, "tables/impact_ratings_by_4groups.csv"), row.names = F)
 ```
 
 plot
@@ -301,11 +299,11 @@ impact_plot
 ## biggest stressor
 ```{r}
 greatest_stress <- baseline_df %>%
-  select(status,first_child, source_stress_covid) %>%
+  select(status, source_stress_covid) %>%
   filter(!is.na(source_stress_covid)) 
 
 stress_table <- greatest_stress %>%
-  group_by(status, first_child) %>%
+  group_by(status) %>%
   summarize(N_total = n(), 
             "Health concerns" = sum(source_stress_covid == 1), 
             "Financial concerns" = sum(source_stress_covid == 2), 
@@ -323,11 +321,11 @@ stress_table <- greatest_stress %>%
             
 
 stress_long <- stress_table %>%
-  gather(key = "source_stress", value = "N_endorsed", -status, -first_child, -N_total) %>% 
+  gather(key = "source_stress", value = "N_endorsed", -status, -N_total) %>% 
   mutate(percent = round((N_endorsed/N_total)*100)) %>%
   filter(percent > 7)
 
-write.csv(stress_long, file = paste0(data_dir, "tables/greatest_source_stress_by_4groups.csv", row.names = F))
+write.csv(stress_long, file = paste0(data_dir, "tables/greatest_source_stress_by_4groups.csv"), row.names = F)
 ```
 
 plot
@@ -336,14 +334,13 @@ plot
 # plot ratings from lowest to highest
 stress_plot <- stress_long %>%
     mutate(source_stress = fct_reorder(source_stress, percent)) %>%
-  ggplot(aes(x = source_stress, y = percent, fill = first_child)) +  
+  ggplot(aes(x = source_stress, y = percent, fill = status)) +  
     geom_bar(stat =  "identity", position = position_dodge()) + 
     theme_bw() + ylab("Percent") + xlab("") + coord_flip() + 
-      custom_theme + my_colors_fill + facet_grid(~status) +
+      custom_theme + my_colors_fill +
   labs(#title = "Single greatest source of stress due to Covid-19", 
-         fill = "First Child",
          caption = paste("Data aggregated from", N_total, "new and expecting mothers"))
 stress_plot
 
-#ggsave(stress_plot, file= paste0(data_dir, "plots/single_greatest_stress_by_preg_status.png")
+ggsave(stress_plot, file= paste0(data_dir, "plots/single_greatest_stress_by_preg_status.png"))
 ```

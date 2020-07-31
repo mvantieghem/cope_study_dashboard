@@ -1,0 +1,220 @@
+---
+title: "covid testing and symptoms over time"
+author: "Michelle.VanTieghem"
+date: "July 14, 2020"
+output:
+  html_document:
+    number_sections: no
+    df_print: kable
+    code_folding: show
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+# README
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set(message = F, warning = F)
+
+library(psych)
+# load packages
+library(corrplot)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+
+# load custom packages
+source("../custom_functions.R")
+
+## special colors for testing positive /neg
+my_test_fill = scale_fill_manual(values = c("dark red", "dark blue", "blue", "red"))
+my_test_color = scale_color_manual(values = c("dark red", "dark blue"))
+
+```
+
+
+# load data
+```{r}
+covid_long <- read.csv( "../clean_data/longitudinal_covid_test_symp.csv")
+
+# create date bins
+covid_long <- covid_long %>%
+  mutate(date_of_visit = as.character(date_of_visit),
+        date_bin = as.factor(ifelse(date_of_visit < "2020-05-01", "04", 
+                           ifelse(date_of_visit < "2020-06-01", "05", 
+                                  ifelse(date_of_visit < "2020-07-01", "06", 
+                                         ifelse(date_of_visit < "2020-08-01", "07", NA)))))) %>%
+  filter(!is.na(date_bin)) %>%
+  mutate(timepoint = as.factor(ifelse(redcap_event_name == "covid_arm_1", 1, 
+                            ifelse(redcap_event_name == "covid_week_2_follo_arm_1", 2, 
+                                   ifelse(redcap_event_name == "covid_week_4_follo_arm_1", 3, 
+                                   ifelse(redcap_event_name == "covid_week_6_follo_arm_1", 4, NA))))),
+         group = as.factor(ifelse(status == "New Mom" & first_child == "N", "New mom, with older children", 
+                        ifelse(status == "New Mom" & first_child == "Y", "New mom, first child",
+                               ifelse(status == "Pregnant" & first_child == "Y", "Pregnant, first child", ifelse(status == "Pregnant" & first_child == "N", "Pregnant, with older children", NA))))))
+
+```
+
+
+# Calculating Testing Rates 
+## across all visits - any test? 
+ if more than one, use positive test
+```{r}
+
+covid_self_test_any <- covid_long %>%
+  select(record_id, status, first_child, timepoint, self_test) %>%
+  mutate(any_test = ifelse(is.na(self_test) | 
+                             self_test == 1 |
+                             self_test == 999, 0, 1)) %>%
+  spread(key = timepoint, value = any_test) %>%
+  rename(Test1 = '1', Test2 = '2', Test3 = '3', Test4 ='4') %>%
+  mutate(Num_tests = rowSums(cbind(Test1, Test2, Test3, Test4), na.rm = T), 
+         any_test = ifelse(Num_tests > 0, 1, 0), 
+         no_test = ifelse(Num_tests == 0, 1, 0)) %>%
+  select(-self_test)
+
+## NOT THE RIGHT LENGTH!!
+nrow(covid_self_test_any)
+length(unique(covid_self_test_any$record_id))
+
+# get test results... 
+covid_self_test_result <- covid_long %>%
+  select(record_id, timepoint, self_test) %>%
+  mutate(any_test = ifelse(is.na(self_test) | 
+                             self_test == 1 |
+                             self_test == 999, 0, 1),
+         positive_test = ifelse(any_test == 0, NA,
+                                ifelse(self_test == 2, 1, 
+                                ifelse(self_test == 3, 0, NA)))) %>%
+  spread(key = timepoint, value = positive_test) %>%
+  rename(Pos1 = '1', Pos2 = '2', Pos3 = '3', Pos4 ='4') %>%
+  # add up all positive tests per subject
+  mutate(Num_pos_tests = rowSums(cbind(Pos1, Pos2, Pos3, Pos4), na.rm =T),
+         never_tested = ifelse(is.na(Pos1) & is.na(Pos2) & is.na(Pos3) & is.na(Pos4), 1, 0),
+         # if they have never been tested, make this NA
+         # if they have been tested, mark if number posiitve is more than zero.
+         any_pos_test = ifelse(never_tested == 1, NA, 
+                               ifelse(Num_pos_tests > 0, 1, 0))) %>%
+  select(-self_test)
+nrow(covid_self_test_result)
+
+
+# combine tables 
+wide_test_data <- covid_self_test_any%>%
+  merge(.,  covid_self_test_result , by = "record_id")
+
+
+self_test_any_table <- covid_self_test_any %>%
+  group_by(status) %>%
+  summarize(n = n(), 
+            any_test = sum(any_test), 
+            any_test_percent = round((any_test/n)*100, 2))
+
+self_test_result_table <- covid_self_test_result %>%
+  group_by(status) %>%
+  summarize(n = n(), 
+            any_pos_test = sum(any_pos_test, na.rm = T), 
+            any_pos_test_percent = round((any_pos_test/n)*100,2))
+  
+## add to table with any test rate
+cbind(self_test_result_table, self_test_any_table$any_test, self_test_any_table$any_test_percent)
+
+```
+
+
+## plot rates of test restults. 
+```{r}
+self_test_table %>%
+  ggplot(aes(x = status, y = percent)) +
+  geom_col(aes(fill = status)) + 
+  my_colors_fill + 
+  custom_theme + ylim(0, 100) +
+  labs(title = "Percent of women reporting Covid-19 testing", 
+       y = "Percent", x = "", 
+       caption = paste("Data aggregated from", sum(self_test_table$n), "new and expecting mothers"))
+  
+
+```
+
+
+# Testing over time...
+## recode testing and symptom variables 
+```{r}
+test_vars <- covid_long %>% 
+  select(record_id, timepoint, contains("test")) %>%
+  na_if(., '999') %>% # change 999 to NAs
+  # for each variable, recode the numbers to factors:
+  mutate_if(is.numeric, funs(recode(., '1' = 'Never tested', '2' = 'Positive', 
+                                    '3' = 'Negative', '4' = 'waiting')))
+symp_vars <- covid_long %>% 
+  select(record_id, timepoint, contains("symp")) %>%
+  na_if(., '999') %>% # change 999s to NAs
+   mutate_if(is.numeric, funs(recode(., '1' = 'No symptoms', '2' = 'Current symptoms', 
+                                    '3' = 'Past symptoms')))
+
+covid_long <- covid_long %>%
+  # remove the original versions
+  select(-contains("test"), -contains("symp")) %>%
+  # add the new versions
+  left_join(., test_vars, by = c("record_id", "timepoint")) %>%
+  left_join(., symp_vars, by = c("record_id", "timepoint"))
+  
+```
+
+
+## Testing rate 
+percent tested 
+
+## Percent positive 
+of entire sample, or of tested only? 
+are the same people reporting their positive test over and over? or represents new tests over time?
+same thing for family... 
+
+
+## how tests per time point? 
+```{r}
+N_per_tp <- covid_long %>%
+  group_by(timepoint) %>% 
+  count()
+
+covid_test_table <- covid_long %>% 
+  group_by(timepoint, self_test) %>%
+  count() %>%
+  mutate(Percent = round((n/ N_per_tp$n[N_per_tp$timepoint == timepoint])*100, 2)) %>%
+  ungroup()
+
+covid_test_table
+
+N_tested <- 
+```
+
+## plot testing data 
+```{r}
+
+covid_test_table %>%
+  filter(self_test != "waiting" & !is.na(self_test) & self_test != "Never tested") %>%
+  mutate(self_test = reorder(self_test, Percent)) %>%
+  ggplot(aes(x = timepoint, y = Percent, fill = self_test)) + 
+  geom_bar(stat = "identity") + my_colors_fill +
+  custom_theme + xlab ("Survey Time Point") + ylim(0, 50) +
+  labs(fill = 'Covid-19 Test Result', 
+        title = "Self-reported Covid-19 Test Results over time", 
+        caption = paste("Data aggregated acrossnew and expecting mothers"))
+
+```
+
+
+## plot testing data 
+```{r}
+
+covid_test_table %>%
+  filter(self_test != "waiting" & !is.na(self_test) & self_test != "Never tested") %>%
+  mutate(self_test = reorder(self_test, Percent)) %>%
+  ggplot(aes(x = timepoint, y = Percent, fill = self_test)) + 
+  geom_point(aes(color = self_test)) +
+  geom_line(aes(group = self_test, color = self_test)) + 
+  theme_bw() + my_colors_color
+
+```

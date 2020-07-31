@@ -1,0 +1,214 @@
+---
+title: "COPE EDA: coping & social support"
+author: "Michelle.VanTieghem"
+date: "June 24, 2020"
+output:
+  html_document:
+    number_sections: no
+    df_print: kable
+    code_folding: show
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set(message = F, warning = F)
+
+library(psych)
+# load packages
+library(corrplot)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+
+
+# load custom packages
+source(paste0(data_dir, "custom_functions.R"))
+data_dir <- "../"
+baseline_df <- read.csv(paste0(data_dir, "clean_data/cleaned_baseline_survey_2020-07-14.csv"))
+
+```
+
+# social support - HOW 
+```{r}
+support_method <- baseline_df %>%
+  select(contains("social_support_method"), status, first_child) %>%
+  drop_na() 
+
+support_method_long <- support_method %>%
+  group_by(status, first_child) %>%
+  summarize(N_total = n(), 
+          "Phone calls" = sum(social_support_needs___1, na.rm = T), 
+         "Electronic" = sum(social_support_needs___2, na.rm = T), 
+         "Virtual" = sum(social_support_needs___3, na.rm = T), 
+         "In person" = sum(social_support_needs___4, na.rm = T), 
+         "Social media" = sum(social_support_needs___5, na.rm = T), 
+         "Other" = sum(social_support_needs___6, na.rm = T)) %>%
+  gather(key = "support_method", value = "N_endorsed", -N_total, -status, -first_child) %>%
+  mutate(percent = round((N_endorsed/N_total)*100,2))
+
+
+write.csv(support_method_long, file = paste0(data_dir, "tables/support_method_by_4groups.csv"), row.names = F)
+```
+
+plot 
+
+women with first child are getting more support - 
+
+```{r}
+
+# plot ratings from lowest to highest
+support_method_plot <- support_method_long %>%
+  filter(support_method != "Other") %>%
+  mutate(support_method = reorder(support_method, percent)) %>%
+ ggplot(aes(x = support_method, y = percent, fill = first_child)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  coord_flip() + facet_grid(~status) + xlab("") +
+  custom_theme + my_colors_color + my_colors_fill +
+  labs("", subtitle = "",
+        fill = "First Child",
+         caption = paste("Data aggregated from", nrow(baseline_df), "new and expecting mothers"))
+
+support_method_plot
+ggsave(support_method_plot, file= paste0(data_dir, "plots/support_method_by_preg_status.png"))
+
+```
+
+# social support - WHO
+```{r}
+
+support_who<- baseline_df %>%
+  select(contains("social_support_who"), status, first_child) %>%
+  drop_na() 
+  
+support_who_long <- support_who %>%
+  group_by(status, first_child) %>%
+  summarize(N_total = n(), 
+          "Family" = sum(social_support_who___1, na.rm = T), 
+         "Friends" = sum(social_support_who___2, na.rm = T), 
+         "Religious community" = sum(social_support_who___3, na.rm = T), 
+         "Mental health provider" = sum(social_support_who___4, na.rm = T), 
+         "Health care provider" = sum(social_support_who___5, na.rm = T), 
+         "Community organization" = sum(social_support_who___6, na.rm = T), 
+         "Other" = sum(social_support_who___7, na.rm = T)) %>%
+  gather(key = "support_who", value = "N_endorsed", -N_total, -status, -first_child) %>%
+  mutate(percent = round((N_endorsed/N_total)*100,2))
+
+write.csv(support_who_long, file = paste0(data_dir, "tables/support_who_by_4groups.csv"), row.names = F)
+```
+
+plot 
+```{r}
+
+# plot ratings from lowest to highest
+support_who_plot <- support_who_long %>%
+  filter(support_who != "Other") %>%
+  mutate(support_who = reorder(support_who, percent)) %>%
+ ggplot(aes(x = support_who, y = percent, fill = first_child)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  coord_flip() + facet_grid(~status) + xlab("") +
+  custom_theme + my_colors_color + my_colors_fill +
+  labs("", subtitle = "",
+        fill = "First Child",
+        caption = paste("Data aggregated from", nrow(support_who), "new and expecting mothers"))
+
+support_who_plot
+ggsave(support_who_plot, file= paste0(data_dir, "plots/support_who_by_preg_status.png"))
+
+```
+
+## coping strategies: all non-drugs
+```{r}
+
+coping<- baseline_df %>%
+  select(contains("cope_strategies"), status, first_child) %>%
+  drop_na() 
+  
+coping_long <- coping %>%
+  group_by(status, first_child) %>%
+  summarize(N_total = n(), 
+          "Getting a good night's sleep" = sum(cope_strategies___19, na.rm = T), 
+         "Meditation" = sum(cope_strategies___20, na.rm = T), 
+         "Talking with friends and family" = sum(cope_strategies___21, na.rm = T), 
+         "Family activities" = sum(cope_strategies___22, na.rm = T), 
+         "Talking to other parents" = sum(cope_strategies___23, na.rm = T), 
+         "Increased screen time" = sum(cope_strategies___24, na.rm = T), 
+         "Increased social media" = sum(cope_strategies___25, na.rm = T),
+          "Decreased social media" = sum(cope_strategies___26, na.rm = T),
+          "Increased news" = sum(cope_strategies___27, na.rm = T),
+          "Decreased news" = sum(cope_strategies___28, na.rm = T),
+          "Eating comfort food" = sum(cope_strategies___29, na.rm = T),
+          "Eating healthier" = sum(cope_strategies___30, na.rm = T),
+          "Self-care" = sum(cope_strategies___31, na.rm = T),
+          "Reading, puzzles" = sum(cope_strategies___32, na.rm = T),
+          "Exercising" = sum(cope_strategies___33, na.rm = T),
+            "Talking to health providers" = sum(cope_strategies___41, na.rm = T),
+            "Talking with mental health providers" = sum(cope_strategies___42, na.rm = T),
+            "Helping others" = sum(cope_strategies___43, na.rm = T), 
+            "None" = sum(cope_strategies___37, na.rm = T),
+            "Other" = sum(cope_strategies___37, na.rm = T)) %>%
+  gather(key = "coping", value = "N_endorsed", -N_total, -status, -first_child) %>%
+  mutate(percent = round((N_endorsed/N_total)*100,2))
+
+write.csv(coping_long, file = paste0(data_dir, "tables/coping_by_4groups.csv"), row.names = F)
+```
+
+```{r}
+# plot ratings from lowest to highest
+coping_plot <- coping_long %>%
+  filter(coping != "Other" & coping != "None") %>%
+  mutate(coping = reorder(coping, percent)) %>%
+ # top_n(10) %>%
+ ggplot(aes(x = coping, y = percent, fill = first_child)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  coord_flip() + facet_grid(~status) + xlab("") +
+  custom_theme + my_colors_color + my_colors_fill +
+  labs("", subtitle = "",
+        fill = "First Child",
+        caption = paste("Data aggregated from", nrow(coping), "new and expecting mothers"))
+
+coping_plot
+ggsave(coping_plot, file= paste0(data_dir, "plots/coping_by_preg_status.png"))
+
+```
+
+## coping strategies: drugs 
+```{r}
+coping_long_drugs <- coping %>%
+  group_by(status, first_child) %>%
+  summarize(N_total = n(), 
+          "Drinking alcohol" = sum(cope_strategies___34, na.rm = T),
+          "using tobacco" = sum(cope_strategies___35, na.rm = T),
+          "Using marijuana" = sum(cope_strategies___36, na.rm = T),
+          "Using CBD" = sum(cope_strategies___37, na.rm = T),
+            "Using recreational drugs" = sum(cope_strategies___38, na.rm = T),
+          "Prescription drugs" = sum(cope_strategies___39, na.rm = T),
+            "Over-the-counter sleep aids" = sum(cope_strategies___40, na.rm = T)) %>% gather(key = "coping", value = "N_endorsed", -N_total, -status, -first_child) %>%
+  mutate(percent = round((N_endorsed/N_total)*100,2))
+
+write.csv(coping_long_drugs, file = paste0(data_dir, "tables/coping_drugs_by_4groups.csv"), row.names = F)
+```
+
+```{r}
+# plot ratings from lowest to highest
+coping_drugs_plot <- coping_long_drugs %>%
+  filter(coping != "Other" & coping != "None") %>%
+  mutate(coping = reorder(coping, percent)) %>%
+ # top_n(10) %>%
+ ggplot(aes(x = coping, y = percent)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  coord_flip() + facet_grid(~status) + xlab("") +
+  custom_theme + my_colors_color + my_colors_fill +
+  labs("", subtitle = "",
+        fill = "First Child",
+        caption = paste("Data aggregated from", nrow(coping), "new and expecting mothers"))
+
+coping_drugs_plot
+ggsave(coping_plot, file= paste0(data_dir, "plots/coping_by_preg_status.png"))
+```
+```
+
+## resources

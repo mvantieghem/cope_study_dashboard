@@ -1,7 +1,7 @@
 ---
 title: "COPE CORE Part2: positive impacts"
 author: "Michelle.VanTieghem"
-date: "July 14, 2020"
+date: "July 30, 2020"
 output:
   html_document:
     number_sections: no
@@ -30,7 +30,7 @@ library(readxl)
 
 # load custom packages
 source("custom_functions.R")
-data_dir = "../"
+#data_dir = "../"
 ```
 
 
