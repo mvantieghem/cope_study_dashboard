@@ -26,19 +26,19 @@ library(tidyverse)
 library(ggplot2)
 library(readxl)
 
-#data_dir = "../"
+
 # load custom packages
 source(paste0(data_dir, "custom_functions.R"))
-
-baseline_clean2 <- read.csv( file = paste0(data_dir, "clean_data/cleaned_baseline_survey_2020-07-14.csv"))
+#data_dir = paste0(data_dir, ""
+baseline_clean2 <- read.csv(paste0(data_dir, "clean_data/cleaned_baseline_survey_2020-07-14.csv"))
 ```
 
 
-## make table for restrictions
+# Restrictions
 ```{r}
 
 restrict_table <- baseline_clean2 %>%
-  group_by(status) %>%
+  group_by(status, first_child) %>%
   summarize(N_total = n(),
             'In-person contact with member of household' = sum(covid_behavior_restrictions___1),
             'In-person contact with family not in household' = sum(covid_behavior_restrictions___2),
@@ -52,61 +52,88 @@ restrict_table <- baseline_clean2 %>%
             'Family activities in outdoor spaces' = sum(covid_behavior_restrictions___8), 
             'Family activities in public spaces' = sum(covid_behavior_restrictions___9),
             'Going to restaurants or stores' = sum(covid_behavior_restrictions___10), 
-            'Exercise classes or recreational sports' = sum(covid_behavior_restrictions___11))
-
-restrict_table_long <- restrict_table %>%
-  gather(key = "Restrictions", value = "N_endorsed", -N_total, -status) %>%
-  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
-  select(status, Restrictions,  N_endorsed, Percent)
-restrict_table_long
+            'Exercise or recreational' = sum(covid_behavior_restrictions___11))
 ```
 
-## plot restrictions
+table by status & first_child
+```{r}
+restrict_table_long <- restrict_table %>%
+  gather(key = "Restrictions", value = "N_endorsed", -N_total, -status, -first_child) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
+  select(status, first_child, Restrictions,  N_endorsed, Percent)
+restrict_table_long
+
+write.csv(restrict_table_long, file = paste0(data_dir, "tables/covid_behavior_restrictions_by_4groups.csv", row.names = F))
+```
+
+plot restrictions
 ```{r,  echo = F}
 restrictions_plot <- restrict_table_long %>%
     mutate(Restrictions = reorder(Restrictions, Percent)) %>%
-ggplot( aes(x = Restrictions, y = Percent, fill = status)) + 
+ggplot( aes(x = Restrictions, y = Percent, fill = first_child)) + 
   geom_bar(stat =  "identity", position = position_dodge()) + 
-   coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
+   coord_flip()  + xlab("") + ylim(0, 100) + facet_grid(~status) +
     ylab ("Percent") +  custom_theme + my_colors_fill + 
   labs(#title = "Behavior restrictions due to the Covid-19 pandemic", 
-    caption = paste("Data aggregated from", restrict_table$N_total, "new and expecting mothers")) 
+     fill = "First Child",
+    caption = paste("Data aggregated from", sum(restrict_table$N_total), 
+                    "new and expecting mothers")) 
 
 restrictions_plot 
-#ggsave(restrictions_plot, file = "../plots/covid_restrictions_by_status.png")
+#ggsave(restrictions_plot, file = paste0(data_dir, "plots/covid_restrictions_by_status.png")
 ```
 
-##  table for which activities people miss the most
+# activities people miss the most
+table and plot across all groups 
 ```{r}
 N_total <- nrow(baseline_clean2 %>% filter(!is.na(activities_miss_most)))
 miss_table <- baseline_clean2 %>%
-  filter(!is.na(activities_miss_most)) %>%
-  group_by(activities_miss_most) %>%
-  summarize(N_endorsed = n()) %>%
-  mutate(Percent = round((N_endorsed/N_total)*100, 2)) %>%
-  select(activities_miss_most, N_endorsed, Percent) %>%
-  ungroup()
+    filter(!is.na(activities_miss_most)) %>%
+  mutate(activities_miss_most = ifelse(grepl("person", activities_miss_most), 
+                                       "In-person contact", as.character(activities_miss_most))) %>%
+group_by(activities_miss_most) %>%
+  count() %>% ungroup() %>%
+    mutate(Percent = round((n/N_total)*100, 2)) 
 
-miss_table
 
-```
-
-## plot missed activities by frequency
-```{r,  echo = F}
 miss_impact_plot <- miss_table %>%
     mutate(activities_miss_most = reorder(activities_miss_most, Percent)) %>%
   ggplot( aes(x = activities_miss_most, y = Percent)) + 
-  geom_bar(stat =  "identity", position = position_dodge(), 
-           fill = "navy") + 
-   coord_flip()  + theme_bw() + xlab("") + 
+  geom_bar(stat =  "identity", position = position_dodge(), fill = "navy") +
+   coord_flip()  + theme_bw() + xlab("") + ylim(0, 100) +
     ylab ("Percent") +  custom_theme + my_colors_fill + 
   labs(#title = "Which activities do women miss the most?", 
        caption = paste("Data aggregated from", N_total, "new and expecting mothers"))
 miss_impact_plot 
 
-#ggsave(miss_impact_plot, file = "../plots/activities_miss_most_by_status.png")
+#ggsave(miss_impact_plot, file = paste0(data_dir, "plots/activities_miss_most_by_status.png")
+```
+
+## missed activities by group 
+```{r}
+miss_table_by_group <- baseline_clean2 %>%
+    filter(!is.na(activities_miss_most)) %>%
+  mutate(activities_miss_most = ifelse(grepl("person", activities_miss_most), 
+                                       "In-person contact", as.character(activities_miss_most))) %>%
+  group_by(status, first_child) %>%
+  summarize(N_total = n(), 
+            "In-person contact" = sum(ifelse(activities_miss_most == "In-person contact", 1, 0), na.rm = T),
+            "Going to restaurants or stores" = sum(ifelse(grepl("restaurants", activities_miss_most), 1, 0), na.rm = T),
+            "Cancellation of family or personal travel" = sum(ifelse(grepl("travel", activities_miss_most), 1, 0), na.rm = T),
+            "Family activites in public spaces" = sum(ifelse(activities_miss_most == "Family activities in public spaces", 1, 0), na.rm = T),
+            "Childcare" = sum(ifelse(grepl("childcare", activities_miss_most), 1, 0), na.rm = T),
+              "Exercise/recreations" = sum(ifelse(grepl("xercise", activities_miss_most), 1, 0), na.rm = T))
+
+
+miss_table_long <- miss_table_by_group %>%
+   gather(key = "activity_miss_most", value = "N_endorsed", -N_total, -status, -first_child) %>%
+  mutate(Percent = round((N_endorsed/N_total)*100, 2)) 
+
+miss_table_long
+write.csv(miss_table_long, file = paste0(data_dir, "tables/activity_miss_most_by_4groups.csv", row.names = F))
 
 ```
+
 
 ## facts
 ```{r}

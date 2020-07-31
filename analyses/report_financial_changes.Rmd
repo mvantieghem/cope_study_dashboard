@@ -141,14 +141,6 @@ job_distress_long <- job_distress_df %>%
   # make sure the factors are in logical order for plots.
   mutate(Rating = fct_relevel(Rating, "No distress", "Mild distress", "Moderate distress", "High distress"))
 
-# for now, plot a single one as test case.
-job_distress_plot <- job_distress_long %>%
-  filter(Factor == "Current Impact") %>%
-  ggplot(aes(x = Factor, y = Percent, fill = Rating)) + 
-  geom_bar(stat = "identity") +
-   my_colors_rating4 +
-   xlab("") + custom_theme 
-job_distress_plot
 ```
 
 

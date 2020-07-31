@@ -1,0 +1,134 @@
+---
+title: "COPE CORE Part2: positive impacts"
+author: "Michelle.VanTieghem"
+date: "July 14, 2020"
+output:
+  html_document:
+    number_sections: no
+    df_print: kable
+    code_folding: show
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+# README
+these measures are from COPE Core Part 2 (cope impact update - positive items)
+and 1 = no improvement, 7 = extreme improvement...
+recoded to 0 = no improvement, 6 = extreme improvement.
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set(message = F, warning = F)
+
+library(psych)
+# load packages
+library(corrplot)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+
+# load custom packages
+source("custom_functions.R")
+data_dir = "../"
+```
+
+
+# load data
+```{r}
+core2_long <- read.csv(paste0(data_dir, "clean_data/longitudinal_cope_core2_positive.csv"))
+
+
+
+core2_long <- core2_long %>%
+  select(record_id, date_of_visit, redcap_event_name, 
+         status, first_child, 
+         imp_relationships, new_connections, leisure_time, more_appreciate) %>%
+  mutate_if(is.numeric, funs(. -1)) %>% # recode so that 0 = no change
+  # add time bins!
+  mutate(date_of_visit = as.character(date_of_visit),
+        date_bin = as.factor(ifelse(date_of_visit < "2020-05-01", "04", 
+                           ifelse(date_of_visit < "2020-06-01", "05", 
+                                  ifelse(date_of_visit < "2020-07-01", "06", 
+                                         ifelse(date_of_visit < "2020-08-01", "07", NA)))))) %>%
+  filter(!is.na(date_bin)) %>%
+  mutate(timepoint = as.factor( # nOTE THERE IS NO BASELINE FOR THESE QUESTIOSN
+                            ifelse(redcap_event_name == "covid_week_2_follo_arm_1", 1, 
+                                   ifelse(redcap_event_name == "covid_week_4_follo_arm_1", 2, 
+                                   ifelse(redcap_event_name == "covid_week_6_follo_arm_1", 3, NA)))))
+
+
+```
+
+
+## binarizing positive impact...
+if score > 0, then some positive improvement.
+
+## across all subjects, over time
+```{r}
+positive_table <- core2_long %>%
+  group_by(timepoint) %>%
+  summarize(N_total = n(), 
+         'Improved relationships' = sum(imp_relationships > 0, na.rm = T),
+         'New connections' = sum(new_connections >0, na.rm = T),
+         'More leisure time' = sum(leisure_time > 0, na.rm = T),
+         'Greater appreciation' = sum(more_appreciate >0 , na.rm = T)) %>%
+  ungroup()
+
+positive_table_long <- positive_table %>%
+  gather(key = "factor", value = "positive_change", -N_total, -timepoint) %>%
+  mutate(percent = round((positive_change / N_total)*100, 2))
+```
+
+plot
+```{r}
+
+positive_table_long %>%
+  ggplot(aes(x = timepoint, y = percent, color = factor)) + 
+  geom_point() +
+  geom_line(aes(group = factor)) +
+  custom_theme + my_colors_fill + my_colors_color +
+  labs(y = "Percent", 
+       x = "Survey Timepoint")
+
+
+```
+
+
+## across all subjects, bar graphs at week 2
+```{r}
+
+positive_table <- core2_long %>%
+  filter(timepoint == 1) %>%
+  group_by(status, first_child) %>%
+  summarize(N_total = n(), 
+         'Improved relationships' = sum(imp_relationships > 0, na.rm = T),
+         'New connections' = sum(new_connections >0, na.rm = T),
+         'More leisure time' = sum(leisure_time > 0, na.rm = T),
+         'Greater appreciation' = sum(more_appreciate >0 , na.rm = T)) %>%
+  ungroup()
+
+positive_table_long <- positive_table %>%
+  gather(key = "factor", value = "N_endorsed", -N_total, -status, -first_child) %>%
+  mutate(percent = round((N_endorsed / N_total)*100, 2))
+
+write.csv(positive_table_long, file = paste0(data_dir, "tables/positive_changes_by_4groups.csv"), row.names = F)
+```
+
+plot
+```{r}
+N_total <- sum(positive_table$N_total)
+positive_change_plot <- positive_table_long %>%
+  mutate(factor = reorder(factor, percent)) %>%
+  ggplot(aes(x = factor, y = percent, fill = status)) + 
+  geom_bar(stat= "identity", position = position_dodge()) +
+  coord_flip()+ 
+  custom_theme + my_colors_fill + my_colors_color +
+  labs(y = "Percent", 
+       x = "", caption = paste("Data aggregated from", N_total, "new and expecting mothers"))
+positive_change_plot
+
+ggsave(positive_change_plot, file = paste0(data_dir, "plots/positive_changes_by_preg_status.png"))
+
+```
+

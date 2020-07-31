@@ -1,0 +1,165 @@
+---
+title: "COPE CORE Part2: positive impacts"
+author: "Michelle.VanTieghem"
+date: "July 14, 2020"
+output:
+  html_document:
+    number_sections: no
+    df_print: kable
+    code_folding: show
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+# README
+these measures are from COPE Core Part 2 (cope impact update - positive items)
+and 1 = no improvement, 7 = extreme improvement...
+recoded to 0 = no improvement, 6 = extreme improvement.
+
+```{r, echo = F, message = F, warning = F, include = F}
+knitr::opts_chunk$set(message = F, warning = F)
+
+library(psych)
+# load packages
+library(corrplot)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+
+# load custom packages
+source("custom_functions.R")
+data_dir = "../"
+```
+
+
+# load data
+```{r}
+core1_long <- read.csv(paste0(data_dir, "clean_data/longitudinal_cope_core1_disruptions.csv"))
+
+names(core1_long)
+
+core1_long <- core1_long %>%
+  select(record_id, date_of_visit, redcap_event_name, 
+         status, first_child, 
+         contains("disrupted"), impact_life, conflict_fight, 
+         control_loss, sleep_problems, reduced_energy, 
+         employment_change, livingarrangements_change, health_change, 
+         healthc_change, rules_change) %>%
+  mutate_if(is.numeric, funs(. -1)) %>% # recode so that 0 = no change
+  # add time bins!
+  mutate(date_of_visit = as.character(date_of_visit),
+        date_bin = as.factor(ifelse(date_of_visit < "2020-05-01", "04", 
+                           ifelse(date_of_visit < "2020-06-01", "05", 
+                                  ifelse(date_of_visit < "2020-07-01", "06", 
+                                         ifelse(date_of_visit < "2020-08-01", "07", NA)))))) %>%
+  filter(!is.na(date_bin)) %>%
+  mutate(timepoint = as.factor( # nOTE THERE IS NO BASELINE FOR THESE QUESTIOSN
+                            ifelse(redcap_event_name == "covid_week_2_follo_arm_1", 1, 
+                                   ifelse(redcap_event_name == "covid_week_4_follo_arm_1", 2, 
+                                   ifelse(redcap_event_name == "covid_week_6_follo_arm_1", 3, NA)))))
+
+
+```
+
+
+## binarizing positive impact...
+if score > 0, then some positive improvement.
+
+## across all subjects, over time
+```{r}
+disruptions_table <- core1_long %>%
+  group_by(timepoint, status, first_child) %>%
+  summarize(N_total = n(), 
+         "Social activity disruptions" = mean(disrupted_social_rating, na.rm = T),
+         "Work disruptions" = mean(disrupted_work_rating, na.rm = T),
+         "Physical activity disruptions" = mean(disrupted_physical_rating, na.rm = T),
+         "Ability to leave the house" = mean(disrupted_house_rating, na.rm = T),
+         "Negative daily impact" = mean(impact_life, na.rm = T), 
+         "Increased conflict" = mean(conflict_fight, na.rm = T),
+         "Loss of control" = mean(control_loss, na.rm = T),
+         "Sleep problems" = mean(sleep_problems, na.rm = T),
+         "Reduced energy" = mean(reduced_energy, na.rm = T)) %>%
+  ungroup()
+
+disruptions_table_long <- disruptions_table %>%
+  gather(key = "factor", value = "mean", -N_total, -timepoint, -status, -first_child)
+```
+
+plot
+```{r}
+
+core1_disruptions_plot <- disruptions_table_long %>%
+  filter(timepoint == 1) %>%
+  filter(grepl("disrupt", factor) | factor == "Ability to leave the house") %>%
+  mutate(factor = reorder(factor, mean)) %>%
+  ggplot(aes(x = factor, y = mean, fill  = status)) + 
+  geom_bar(stat = "identity", position = position_dodge()) +
+  custom_theme + my_colors_fill + my_colors_color +
+  coord_flip() + 
+  labs(y = "Mean Rating", caption = "0 = no disruption, 6 = extreme disruption",
+       x = "")
+
+core1_disruptions_plot
+ggsave(core1_disruptions_plot, file = paste0(data_dir, "plots/core1_disrupt_plot_by_preg_status.png"))
+
+```
+
+
+```{r}
+
+core1_neg_plot <- disruptions_table_long %>%
+  filter(timepoint == 1) %>%
+  filter(!grepl("disrupt", factor) & factor != "Ability to leave the house") %>%
+  mutate(factor = reorder(factor, mean)) %>%
+  ggplot(aes(x = factor, y = mean, fill  = status)) + 
+  geom_bar(stat = "identity", position = position_dodge()) +
+  custom_theme + my_colors_fill + my_colors_color +
+  coord_flip() + 
+  labs(y = "Mean Rating", caption = "0 = no disruption, 6 = extreme disruption",
+       x = "")
+
+core1_neg_plot
+
+ggsave(core1_neg_plot, file = paste0(data_dir, "plots/core1_neg_plot_by_preg_status.png"))
+```
+
+
+## across all subjects, bar graphs at week 2
+```{r}
+
+positive_table <- core2_long %>%
+  filter(timepoint == 1) %>%
+  group_by(status, first_child) %>%
+  summarize(N_total = n(), 
+         'Improved relationships' = sum(imp_relationships > 0, na.rm = T),
+         'New connections' = sum(new_connections >0, na.rm = T),
+         'More leisure time' = sum(leisure_time > 0, na.rm = T),
+         'Greater appreciation' = sum(more_appreciate >0 , na.rm = T)) %>%
+  ungroup()
+
+positive_table_long <- positive_table %>%
+  gather(key = "factor", value = "N_endorsed", -N_total, -status, -first_child) %>%
+  mutate(percent = round((N_endorsed / N_total)*100, 2))
+
+write.csv(positive_table_long, file = paste0(data_dir, "tables/positive_changes_by_4groups.csv"), row.names = F)
+```
+
+plot
+```{r}
+N_total <- sum(positive_table$N_total)
+positive_change_plot <- positive_table_long %>%
+  mutate(factor = reorder(factor, percent)) %>%
+  ggplot(aes(x = factor, y = percent, fill = status)) + 
+  geom_bar(stat= "identity", position = position_dodge()) +
+  coord_flip()+ 
+  custom_theme + my_colors_fill + my_colors_color +
+  labs(y = "Percent", 
+       x = "", caption = paste("Data aggregated from", N_total, "new and expecting mothers"))
+positive_change_plot
+
+ggsave(positive_change_plot, file = paste0(data_dir, "plots/positive_changes_by_preg_status.png"))
+
+```
+

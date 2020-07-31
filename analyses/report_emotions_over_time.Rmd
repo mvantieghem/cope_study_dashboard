@@ -13,6 +13,11 @@ output:
       smooth_scroll: yes
 ---
 
+# README
+bsi scores have been transformed to 0-6 so that 0 = no endorsement (instead of 1-7)
+only including variables that were repeated across all events, 
+so not the entire BSI that was collected at baseline.
+Note: all of this code is visualization of data, but no statistical models = no inference! 
 
 ```{r, echo = F, message = F, warning = F, include = F}
 knitr::opts_chunk$set(message = F, warning = F)
@@ -31,7 +36,116 @@ source("../custom_functions.R")
 
 # load data
 ```{r}
-covid_long <- read.csv( "../clean_data/longitudinal_bsi_ptsd.csv", row.names = F)
-baseline_df <- read.csv("../clean_data/complete_baseline_data_2020-07-14.csv")
+emo_long <- read.csv( "../clean_data/longitudinal_bsi_ptsd.csv")
+
+# create date bins
+emo_long <- emo_long %>%
+  mutate(date_of_visit = as.character(date_of_visit)) %>%
+  mutate(date_bin = ifelse(date_of_visit < "2020-05-01", "04", 
+                           ifelse(date_of_visit < "2020-06-01", "05", 
+                                  ifelse(date_of_visit < "2020-07-01", "06", 
+                                         ifelse(date_of_visit < "2020-08-01", "07", NA))))) %>%
+  filter(!is.na(date_bin)) %>%
+  mutate(timepoint = ifelse(redcap_event_name == "covid_arm_1", 1, 
+                            ifelse(redcap_event_name == "covid_week_2_follo_arm_1", 2, 
+                                   ifelse(redcap_event_name == "covid_week_4_follo_arm_1", 3, 
+                                   ifelse(redcap_event_name == "covid_week_6_follo_arm_1", 4, NA)))),
+         group = ifelse(status == "New Mom" & first_child == "N", "New mom, with older children", 
+                        ifelse(status == "New Mom" & first_child == "Y", "New mom, first child",
+                               ifelse(status == "Pregnant" & first_child == "Y", "Pregnant, first child", ifelse(status == "Pregnant" & first_child == "N", "Pregnant, with older children", NA)))))
+
+```
+
+## compute bsi scores and PTSD scores 
+```{r}
+bsi_vars <- emo_long %>% 
+  select(starts_with("bsi"))
+
+ptsd_vars <- emo_long %>% 
+  select(starts_with("ptsd"))
+
+emo_long <- emo_long %>%
+  mutate(bsi_ave = rowMeans(bsi_vars, na.rm =T), 
+         ptsd_ave = rowMeans(ptsd_vars, na.rm = T))
+```
+
+## how many per group?
+```{r}
+
+emo_long %>% 
+  group_by(first_child, status) %>%
+  count()
+
+```
+
+## plot raw data 
+with a smoothing function - NOTE, just FOR VISUALIZATION - not modeled!! 
+```{r}
+emo_long %>%
+  ggplot(aes(x = timepoint, y = bsi_ave)) + 
+ geom_line(aes(color = status, group = record_id), alpha = 0.2) +
+ theme_bw() + xlab ("survey timepoint") + ylab ("Mean BSI score") +
+  geom_smooth(aes(group = status, color = status, fill = status))
+
+```
+
+
+## calculate scores by survey time points 
+```{r}
+
+bsi_table <- emo_long %>%
+  group_by(timepoint, status) %>%
+  summarize(bsi_mean = mean(bsi_ave, na.rm = T), 
+         bsi_sd = sd(bsi_ave, na.rm = T), 
+         bsi_upper = bsi_mean + bsi_sd, 
+         bsi_lower = bsi_mean - bsi_sd, 
+         ptsd_mean = mean(ptsd_ave, na.rm = T), 
+         ptsd_sd = sd(ptsd_ave, na.rm = T),
+         ptsd_upper = ptsd_mean + ptsd_sd, 
+         ptsd_lower = ptsd_mean - ptsd_sd) 
+  
+
+bsi_table
+```
+
+
+## BSI plot over time, by survey time points 
+error bars = 1 SD 
+```{r}
+bsi_table %>%
+  ggplot(aes(x = timepoint, y = bsi_mean)) + 
+  geom_ribbon(aes(ymin = bsi_lower, ymax = bsi_upper, fill = status), alpha = 0.1) +
+  geom_line(aes(color = status, group = status)) +
+ theme_bw() + xlab ("survey timepoint") + ylab ("Mean BSI score") 
+
+```
+
+## calculate scores by actual date bins
+```{r}
+# create date bins 
+
+bsi_table2 <- emo_long %>%
+  group_by(date_bin,  status) %>%
+  summarize(bsi_mean = mean(bsi_ave, na.rm = T), 
+         bsi_sd = sd(bsi_ave, na.rm = T), 
+         bsi_upper = bsi_mean + bsi_sd, 
+         bsi_lower = bsi_mean - bsi_sd,
+              ptsd_mean = mean(ptsd_ave, na.rm = T), 
+         ptsd_sd = sd(ptsd_ave, na.rm = T),
+         ptsd_upper = ptsd_mean + ptsd_sd, 
+         ptsd_lower = ptsd_mean - ptsd_sd)
+
+bsi_table2
+```
+
+
+## BSI plot over time, by actual date 
+error bars = 1 SD 
+```{r}
+bsi_table2 %>%
+  ggplot(aes(x = date_bin, y = bsi_mean)) + 
+  geom_line(aes(color = status, group = status)) +
+ theme_bw() + xlab ("Month") + ylab ("Mean BSI score") +
+  geom_errorbar(aes(ymin = bsi_mean - bsi_sd, ymax = bsi_mean + bsi_sd), alpha = 0.1) 
 
 ```

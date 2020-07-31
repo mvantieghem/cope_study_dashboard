@@ -28,9 +28,10 @@ library(tidyverse)
 library(ggplot2)
 library(readxl)
 library(lubridate)
+library(effects)
 
 # load custom packages
-source(paste0(data_dir, "custom_functions.R"))
+source("custom_functions.R")
 mom_data_all <- read.csv(paste0(data_dir, "clean_data/cleaned_new_mom_survey_2020-07-14.csv"))
 (N_completed_maternal_Q <- nrow(mom_data_all))
 ```
